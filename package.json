@@ -1,0 +1,57 @@
+{
+  "name": "echo-volume-api",
+  "productName": "Echo Volume",
+  "version": "3.0.0",
+  "description": "Control Echo Show and Samsung TV volume from your laptop",
+  "main": "desktop/main.js",
+  "scripts": {
+    "start": "node server.js",
+    "app": "electron .",
+    "icons": "node scripts/make-icon.js",
+    "dist": "electron-builder --win nsis"
+  },
+  "dependencies": {
+    "alexa-remote2": "^8.0.2",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "electron": "44.5.1",
+    "electron-builder": "26.17.0"
+  },
+  "build": {
+    "appId": "local.echovolume.app",
+    "productName": "Echo Volume",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "server.js",
+      "smartthings.js",
+      "alexa-features.js",
+      "desktop/**",
+      "public/**",
+      "build/icon.png",
+      "build/tray.png",
+      ".env.example",
+      "package.json",
+      "!.env",
+      "!cookie.json",
+      "!st-token.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Echo Volume"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Build output (installers, unpacked app)
+dist/
+dist-*/
+
+# Secrets and local state (never commit)
+.env
+cookie.json
+st-token.json
+ui-state.json
+settings.json
+
+# Tooling / OS
+.playwright-cli/
+*.log
+.DS_Store
+Thumbs.db

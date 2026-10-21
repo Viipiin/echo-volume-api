@@ -1,0 +1,169 @@
+/* Echo Volume: styles for the tabs and newer features (extras.js). Uses the colour tokens from index.html. */
+
+/* Header extras */
+.tool.stop { color:var(--danger); }
+.tool.stop:hover { border-color:var(--danger); color:var(--danger); }
+.live { font-size:12px; color:var(--ok); font-weight:600; }
+
+/* Tabs */
+.tabs { display:flex; gap:4px; margin:-6px 0 16px; overflow-x:auto; scrollbar-width:none; border-bottom:1px solid var(--line); }
+.tabs::-webkit-scrollbar { display:none; }
+.tabs button { background:transparent; border:0; border-bottom:2px solid transparent; color:var(--muted); font:inherit; font-size:14px;
+  font-weight:600; padding:10px 12px; cursor:pointer; white-space:nowrap; margin-bottom:-1px; }
+.tabs button:hover { color:var(--text); }
+.tabs button.cur { color:var(--accent); border-bottom-color:var(--accent); }
+section.tab > .card, section.tab > div > .card.xcard { margin-bottom:16px; }
+
+/* Toasts */
+.toasts { position:fixed; right:16px; bottom:16px; display:flex; flex-direction:column; gap:8px; z-index:50; max-width:min(360px, calc(100vw - 32px)); }
+.toast { background:var(--card); border:1px solid var(--line); border-left:4px solid var(--accent); border-radius:12px; padding:10px 14px;
+  box-shadow:var(--shadow); display:flex; flex-direction:column; gap:2px; font-size:13px; transition:opacity .4s, transform .4s; }
+.toast span { color:var(--muted); }
+.toast.err { border-left-color:var(--danger); }
+.toast.out { opacity:0; transform:translateY(8px); }
+
+/* Generic cards and forms for the new tabs */
+.card.xcard { margin-bottom:16px; }
+.card.xcard .top { margin-bottom:10px; flex-wrap:wrap; }
+.xform { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.xform input, .xform select, .editor input, .editor select, .sched input, .xcard select, .step input, .step select {
+  background:transparent; color:var(--text); border:1px solid var(--line); border-radius:10px; padding:8px 10px; font:inherit; font-size:14px; min-width:0; }
+.xform input:focus, .xform select:focus, .editor input:focus, .step input:focus, .step select:focus { outline:none; border-color:var(--accent); }
+.xform select option, .xcard select option, .step select option { background:var(--card); color:var(--text); }
+.xform input:not(.num) { flex:1 1 160px; }
+.num { width:72px; }
+.grp { display:contents; }
+.grp[hidden] { display:none; }
+/* Base button look for the new cards. :where() keeps it weak, so specific styles (segmented buttons, chips…) win. */
+:where(.xcard, .sbtns, .podpanel) button:where(:not(.tile, .fav)) { background:transparent; color:var(--text); border:1px solid var(--line);
+  border-radius:10px; padding:8px 14px; font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+:where(.xcard, .sbtns, .podpanel) button:where(:not(.tile, .fav, .cur)):hover:not(:disabled) { border-color:var(--accent); color:var(--accent); }
+:where(.xcard, .sbtns, .podpanel) button.go { background:var(--accent); border-color:var(--accent); color:#fff; }
+:where(.xcard, .sbtns, .podpanel) button.go:hover:not(:disabled) { color:#fff; filter:brightness(1.08); }
+:where(.xcard, .podpanel) button:disabled { opacity:.5; cursor:default; }
+.xcard .seg button { border:0; border-radius:0; }
+/* .kind (small grey text) doesn't wrap in index.html; explanations in the new cards must */
+.xcard .kind, .podpanel .kind, .music .radionote { white-space:normal; }
+.sbtns { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:10px; }
+.top .sbtns { margin-top:0; }
+.empty.small { padding:10px 0; font-size:13px; text-align:left; }
+.status.err { color:var(--danger); }
+.toggle.setrow { display:flex; justify-content:space-between; gap:12px; padding:8px 0; color:var(--text); font-size:14px; }
+
+/* Switch */
+.switch { position:relative; display:inline-block; width:40px; height:22px; flex:none; }
+.switch input { position:absolute; opacity:0; width:100%; height:100%; margin:0; cursor:pointer; z-index:1; }
+.switch span { position:absolute; inset:0; background:var(--track); border-radius:11px; transition:.15s; }
+.switch span::after { content:""; position:absolute; top:3px; left:3px; width:16px; height:16px; border-radius:50%; background:#fff; transition:.15s; }
+.switch input:checked + span { background:var(--accent); }
+.switch input:checked + span::after { transform:translateX(18px); }
+.switch input:focus-visible + span { outline:2px solid var(--accent); outline-offset:2px; }
+.switch input:disabled + span { opacity:.5; }
+
+/* Rows: alarms, timers, reminders, history */
+.alist { display:flex; flex-direction:column; }
+.arow { display:grid; grid-template-columns:1fr auto; grid-template-areas:"main act" "sub act"; gap:2px 12px; padding:10px 0; border-top:1px solid var(--line); align-items:center; }
+.arow:first-child { border-top:0; }
+.amain { grid-area:main; font-size:15px; }
+.amain b { font-size:18px; font-variant-numeric:tabular-nums; margin-right:6px; }
+.asub { grid-area:sub; font-size:12px; color:var(--muted); }
+.aact { grid-area:act; display:flex; gap:8px; align-items:center; }
+.aact button { padding:6px 10px !important; }
+.alist .more { align-self:flex-start; margin-top:8px; }
+
+/* Echo card badges and group member rows */
+.badges { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+.badge { font-size:12px; font-weight:600; color:var(--accent); background:var(--accent-soft); border-radius:12px; padding:3px 9px; font-variant-numeric:tabular-nums; }
+.members { margin-top:12px; border-top:1px solid var(--line); padding-top:8px; display:flex; flex-direction:column; gap:4px; }
+.mrow { display:grid; grid-template-columns:minmax(70px, 1fr) 2fr 24px; gap:8px; align-items:center; font-size:13px; }
+.mrow span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted); }
+.mrow input { height:22px; }
+.mrow b { text-align:right; font-variant-numeric:tabular-nums; }
+
+/* Music card: volume row, queue, cover letters, podcasts */
+.mvol { display:flex; align-items:center; gap:8px; margin:-6px 0 14px; padding:0 4px; }
+.mvol input { flex:1; height:24px; }
+.mvol button { width:32px; height:32px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--text); font-size:16px; cursor:pointer; }
+.mvol button:hover { border-color:var(--accent); color:var(--accent); }
+.mvol b { min-width:22px; text-align:right; font-variant-numeric:tabular-nums; color:var(--accent); }
+.np .ctl button.mode { font-size:14px; }
+.np .ctl button.mode.on { background:var(--accent-soft); border-color:var(--accent); }
+.queue { margin:-4px 0 14px; font-size:13px; }
+.queue summary { cursor:pointer; color:var(--muted); font-weight:600; }
+.queue div { display:flex; flex-direction:column; margin-top:6px; }
+.queue button { background:transparent; border:0; border-top:1px solid var(--line); color:var(--text); text-align:left; padding:8px 4px; font:inherit; cursor:pointer; display:flex; gap:8px; }
+.queue button:hover b { color:var(--accent); }
+.queue button span { color:var(--muted); }
+.tile .cover span { pointer-events:none; }
+.tile .cover img { position:absolute; inset:0; }
+.radionote { margin:-2px 0 10px; line-height:1.5; }
+.podpanel { margin-top:4px; }
+.podpanel .back { margin-bottom:12px; }
+.podhead { display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; }
+.podhead img { width:120px; height:120px; border-radius:12px; object-fit:cover; flex:none; background:var(--track); }
+.podhead > div { flex:1; min-width:200px; display:flex; flex-direction:column; gap:4px; }
+.podhead b { font-size:18px; }
+.podhead span { color:var(--muted); font-size:13px; }
+.podbtns { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+.episodes { list-style:none; margin:12px 0 0; padding:0; max-height:420px; overflow-y:auto; }
+.episodes li { padding:10px 0; border-top:1px solid var(--line); display:flex; flex-direction:column; gap:2px; }
+.episodes li span { font-size:12px; color:var(--muted); }
+.episodes li small { font-size:12px; color:var(--muted); line-height:1.4; }
+
+/* Lists */
+.addform { margin-bottom:8px; }
+.items { list-style:none; margin:0; padding:0; }
+.items li { display:flex; align-items:center; gap:8px; padding:8px 0; border-top:1px solid var(--line); }
+.items li label { flex:1; display:flex; gap:10px; align-items:center; cursor:pointer; font-size:15px; }
+.items li input { width:18px; height:18px; accent-color:var(--accent); }
+.items.done li span { text-decoration:line-through; color:var(--muted); }
+.items li button { padding:4px 9px !important; }
+.xcard details summary { cursor:pointer; color:var(--muted); font-size:13px; font-weight:600; padding:8px 0; }
+
+/* Scenes */
+.scene .steps { margin:4px 0 0; font-size:14px; line-height:1.6; }
+.scene .arrow { color:var(--muted); }
+.progress { margin-left:4px; }
+.progress.err { color:var(--danger); }
+.editor > input { width:100%; margin-bottom:12px; }
+.step { display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:10px 0; border-top:1px solid var(--line); }
+.step > b { min-width:130px; font-size:14px; }
+.step .fields { display:flex; flex-wrap:wrap; gap:8px; align-items:center; flex:1; font-size:13px; color:var(--muted); }
+.step .fields input:not(.num) { min-width:180px; }
+.step .sbtn { display:flex; gap:4px; }
+.step .sbtn button { padding:4px 8px !important; }
+.sched { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:14px; padding-top:12px; border-top:1px solid var(--line); }
+.days { display:inline-flex; gap:4px; }
+.days button { width:32px; padding:6px 0 !important; }
+.days button.cur { background:var(--accent) !important; border-color:var(--accent) !important; color:#fff !important; }
+
+/* Settings */
+.echoset .eq { display:flex; flex-direction:column; gap:4px; margin:6px 0 4px; }
+.echoset .eq label { display:grid; grid-template-columns:52px 1fr 26px; gap:8px; align-items:center; font-size:13px; color:var(--muted); }
+.echoset .eq label b { text-align:right; color:var(--text); font-variant-numeric:tabular-nums; }
+.echoset .eq button { align-self:flex-start; margin-top:4px; }
+.bt { margin-top:12px; padding-top:10px; border-top:1px solid var(--line); display:flex; flex-direction:column; gap:6px; }
+.btrow { display:flex; gap:8px; align-items:center; font-size:13px; }
+.btrow span:first-child { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.phone { display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; margin-top:8px; }
+.phone > div { flex:1; min-width:240px; }
+.phone img { background:#fff; border-radius:10px; padding:6px; }
+.phone p { margin:0 0 8px; font-size:14px; }
+.phone code { font-size:13px; word-break:break-all; background:var(--bg); border:1px solid var(--line); border-radius:6px; padding:2px 6px; }
+
+/* Smart home */
+.shdev .shstate { font-size:22px; font-weight:700; margin:10px 0; }
+.shdev .row2 { display:flex; gap:8px; margin-bottom:8px; }
+.shdev .row2 button { flex:1; background:transparent; color:var(--text); border:1px solid var(--line); border-radius:10px; padding:10px 0; font:inherit; font-weight:600; cursor:pointer; }
+.shdev .row2 button.on { background:var(--accent-soft); border-color:var(--accent); color:var(--accent); }
+.shdev label { display:flex; gap:8px; align-items:center; }
+
+@media (max-width:640px) {
+  #mType { display:flex; width:100%; } /* Songs … Podcasts: five buttons share the row */
+  #mType button { flex:1; padding:8px 2px; }
+  .step > b { min-width:0; flex-basis:100%; }
+  .mrow { grid-template-columns:minmax(60px, 1fr) 2fr 22px; }
+  .podhead img { width:88px; height:88px; }
+  .celist .arow { grid-template-columns:1fr; grid-template-areas:"main" "sub" "act"; } /* birthdays: buttons under the text */
+  .celist .aact { margin-top:6px; }
+}

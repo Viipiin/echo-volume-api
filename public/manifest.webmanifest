@@ -1,0 +1,12 @@
+{
+  "name": "Echo Volume",
+  "short_name": "Echo Volume",
+  "description": "Control your Echo devices, music, TV and Alexa from any device at home",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f6f9",
+  "theme_color": "#0e8fb8",
+  "icons": [
+    { "src": "/icon.png", "sizes": "256x256", "type": "image/png", "purpose": "any" }
+  ]
+}

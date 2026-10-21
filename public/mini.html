@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Quick controls</title>
+<style>
+  :root { --bg:#f4f6f9; --card:#fff; --line:#e3e7ee; --text:#151a22; --muted:#6b7584; --accent:#0e8fb8; --accent-soft:#e3f3f9; --danger:#c2412d; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg:#0f1115; --card:#181b22; --line:#272b35; --text:#e9ecf1; --muted:#8a93a3; --accent:#3ec6e0; --accent-soft:#16303a; --danger:#f0785f; }
+  }
+  :root[data-theme="dark"] { --bg:#0f1115; --card:#181b22; --line:#272b35; --text:#e9ecf1; --muted:#8a93a3; --accent:#3ec6e0; --accent-soft:#16303a; --danger:#f0785f; }
+  .music { display:flex; align-items:center; gap:10px; }
+  .music img, .music .ph { width:40px; height:40px; border-radius:6px; object-fit:cover; flex:none; background:var(--line); }
+  .music .meta { flex:1; min-width:0; }
+  .music .ctl { display:flex; gap:4px; flex:none; }
+  .music .ctl button { min-width:0; width:32px; height:32px; padding:0; border-radius:50%; }
+  .music .ctl button.main { background:var(--accent); border-color:var(--accent); color:#fff; }
+  * { box-sizing:border-box; }
+  html, body { margin:0; height:100%; }
+  body { background:var(--bg); color:var(--text); font-family:"Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+         font-size:13px; border:1px solid var(--line); overflow:auto; user-select:none; }
+  header { padding:12px 14px 6px; font-weight:600; font-size:14px; display:flex; justify-content:space-between; align-items:center; }
+  header span { color:var(--muted); font-weight:400; font-size:12px; }
+  .list { padding:6px 10px 12px; display:flex; flex-direction:column; gap:8px; }
+  .item { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px 12px; }
+  .top { display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+  .name { font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .sub { color:var(--muted); font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .val { font-weight:700; color:var(--accent); font-variant-numeric:tabular-nums; }
+  .val.muted { color:var(--muted); }
+  .row { display:flex; align-items:center; gap:8px; margin-top:6px; }
+  input[type=range] { flex:1; accent-color:var(--accent); }
+  button { background:transparent; color:var(--text); border:1px solid var(--line); border-radius:8px; padding:5px 10px;
+           font:inherit; font-weight:600; cursor:pointer; min-width:64px; }
+  button:hover { border-color:var(--accent); color:var(--accent); }
+  button.on { background:var(--accent-soft); border-color:var(--accent); color:var(--accent); }
+  .err { color:var(--danger); font-size:12px; margin-top:4px; }
+  .item.off .row { opacity:.4; pointer-events:none; }
+  .empty { color:var(--muted); padding:20px; text-align:center; }
+</style>
+</head>
+<body>
+<header>Quick controls <span id="hint">Double-click tray icon for full app</span></header>
+<div class="list" id="list"><div class="empty">Loading…</div></div>
+<script>
+const $ = (id) => document.getElementById(id);
+const key = new URLSearchParams(location.search).get('key') || '';
+const api = (url, body) => fetch('/api' + url, {
+  method: body ? 'POST' : 'GET',
+  headers: { 'Content-Type': 'application/json', ...(key && { 'x-api-key': key }) },
+  body: body && JSON.stringify(body),
+}).then(async (r) => { const j = await r.json(); if (!r.ok) throw new Error(j.error); return j; });
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+const isMain = (d) => d.online && !['VOX', 'REAVER', 'THIRD_PARTY_AVS_VIDEO_FIRST', 'WHA'].includes(d.family);
+const timers = {};
+const debounce = (k, fn, ms = 200) => { clearTimeout(timers[k]); timers[k] = setTimeout(fn, ms); };
+
+function item(id, name, sub, max, unit) {
+  return `<div class="item" data-id="${esc(id)}">
+    <div class="top"><span class="name">${esc(name)}</span><span class="val" data-el="val">–</span></div>
+    ${sub ? `<div class="sub" data-el="sub">${esc(sub)}</div>` : ''}
+    <div class="row"><input type="range" min="0" max="${max}" step="1" data-el="slider" aria-label="${esc(name)} volume" />
+      <button data-el="mute">Mute</button></div>
+    <div class="err" data-el="err"></div></div>`;
+}
+const part = (id, el) => document.querySelector(`.item[data-id="${CSS.escape(id)}"] [data-el="${el}"]`);
+function show(id, v, max, muted) {
+  part(id, 'val').textContent = muted ? 'Muted' : max === 10 ? `${v} / 10` : v;
+  part(id, 'val').classList.toggle('muted', !!muted);
+  if (v != null) part(id, 'slider').value = v;
+  part(id, 'mute').textContent = muted ? 'Unmute' : 'Mute';
+  part(id, 'mute').classList.toggle('on', !!muted);
+}
+const err = (id, m) => { const e = part(id, 'err'); if (e) e.textContent = m || ''; };
+
+// Same theme as the main window (saved on the server)
+api('/ui').then((s) => { if (s.theme === 'light' || s.theme === 'dark') document.documentElement.dataset.theme = s.theme; }).catch(() => {});
+
+// Music on the Echo last used in the app (the server remembers it)
+let playing = false;
+function musicItem(n) {
+  return `<div class="item music" data-id="music">
+    ${n.artwork ? `<img src="${esc(n.artwork)}" alt="" />` : '<div class="ph"></div>'}
+    <div class="meta"><div class="name">${esc(n.title)}</div><div class="sub">${esc([n.artist, n.device].filter(Boolean).join(' · '))}</div></div>
+    <div class="ctl">
+      <button data-m="previous" aria-label="Previous">⏮</button>
+      <button data-m="toggle" class="main" aria-label="Play or pause">${n.state === 'PLAYING' ? '⏸' : '▶'}</button>
+      <button data-m="next" aria-label="Next">⏭</button>
+    </div></div>`;
+}
+
+const state = {};
+async function load() {
+  const html = [];
+  let echos = [], tv = null, now = null;
+  // All three at once (each takes ~1s)
+  const [nowR, devR, tvR] = await Promise.allSettled([
+    api('/music/now'), api('/devices'),
+    api('/st/auth/status').then((s) => (s.connected ? api('/st/tv?fast=1') : null)),
+  ]);
+  if (nowR.value?.title) { now = nowR.value; playing = now.state === 'PLAYING'; html.push(musicItem(now)); }
+  if (devR.status === 'fulfilled') echos = devR.value.filter(isMain).sort((a, b) => (a.family === 'KNIGHT' ? -1 : 1) - (b.family === 'KNIGHT' ? -1 : 1));
+  else html.push(`<div class="empty">${esc(devR.reason.message)}</div>`);
+  tv = tvR.value || null;
+  if (tv) html.push(item('tv', tv.name || 'TV', tv.power === 'on' ? (tv.nowPlaying?.label || 'On') : 'Off', 100));
+  for (const d of echos) html.push(item(d.serial, d.name, '', 10));
+  $('list').innerHTML = html.join('') || '<div class="empty">No devices</div>';
+  if (tv) {
+    state.tv = { v: tv.volume, muted: tv.muted }; show('tv', tv.volume, 100, tv.muted);
+    document.querySelector('.item[data-id="tv"]').classList.toggle('off', tv.power !== 'on'); // volume only works while on
+  }
+  for (const d of echos) {
+    api('/volume?device=' + encodeURIComponent(d.serial))
+      .then((r) => { const s = r.volume == null ? null : Math.round(r.volume / 10); state[d.serial] = { v: s, muted: false }; show(d.serial, s, 10, false); })
+      .catch((e) => err(d.serial, e.message));
+  }
+}
+
+$('list').addEventListener('input', (e) => {
+  if (e.target.dataset.el !== 'slider') return;
+  const id = e.target.closest('.item').dataset.id, v = +e.target.value, isTv = id === 'tv';
+  state[id] = { v, muted: false };
+  show(id, v, isTv ? 100 : 10, false);
+  debounce(id, () => (isTv ? api('/st/tv/volume', { level: v }) : api('/volume', { device: id, level: v * 10 })).then(() => err(id)).catch((x) => err(id, x.message)));
+});
+$('list').addEventListener('click', async (e) => {
+  const m = e.target.closest('[data-m]');
+  if (m) {
+    let cmd = m.dataset.m;
+    if (cmd === 'toggle') { cmd = playing ? 'pause' : 'play'; playing = !playing; m.textContent = playing ? '⏸' : '▶'; }
+    try { await api('/music/' + cmd, {}); if (cmd === 'next' || cmd === 'previous') setTimeout(load, 2500); }
+    catch (x) { m.closest('.item').querySelector('.sub').textContent = x.message; }
+    return;
+  }
+  if (e.target.dataset.el !== 'mute') return;
+  const id = e.target.closest('.item').dataset.id, isTv = id === 'tv', s = state[id] || {};
+  const mute = !s.muted;
+  state[id] = { ...s, muted: mute };
+  show(id, s.v, isTv ? 100 : 10, mute);
+  try {
+    if (isTv) await api(mute ? '/st/tv/mute' : '/st/tv/unmute', {});
+    else { const r = await api(mute ? '/mute' : '/unmute', { device: id }); if (!mute) { state[id].v = Math.round(r.volume / 10); show(id, state[id].v, 10, false); } }
+    err(id);
+  } catch (x) { err(id, x.message); }
+});
+load();
+</script>
+</body>
+</html>
