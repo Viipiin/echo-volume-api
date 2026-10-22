@@ -4,6 +4,8 @@ Control your Echo devices, Samsung TV, Apple Music & Podcasts and Alexa from you
 radio, podcasts, alarms & timers, Alexa lists, scenes, announcements, routines and per-Echo settings. A small local
 server with a web UI and a REST API, also packaged as a Windows desktop app.
 
+![Echo Volume in the Midnight theme: sidebar menu, Apple Music now playing on an Echo, Surprise mixes and song search](docs/screenshot.png)
+
 > Amazon has no official public API for any of this. It uses **alexa-remote2**, the unofficial library behind the
 > ioBroker / Node-RED / Home Assistant Alexa integrations, talking to Amazon's cloud with your Alexa login (not your
 > local network). The TV uses Samsung's official SmartThings API.
