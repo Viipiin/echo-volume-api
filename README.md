@@ -4,6 +4,8 @@ Control your Echo devices, Samsung TV, Apple Music & Podcasts and Alexa from you
 radio, podcasts, alarms & timers, Alexa lists, scenes, announcements, routines and per-Echo settings. A small local
 server with a web UI and a REST API, also packaged as a Windows desktop app.
 
+![Echo Volume in the Midnight theme: sidebar menu, Apple Music now playing on an Echo, Surprise mixes and song search](docs/screenshot.png)
+
 > Amazon has no official public API for any of this. It uses **alexa-remote2**, the unofficial library behind the
 > ioBroker / Node-RED / Home Assistant Alexa integrations, talking to Amazon's cloud with your Alexa login (not your
 > local network). The TV uses Samsung's official SmartThings API.
@@ -25,7 +27,7 @@ server with a web UI and a REST API, also packaged as a Windows desktop app.
 server.js            Express server: REST API, Alexa login, live events, scheduler
 alexa-features.js    Alexa features (alerts, lists, routines, music, scenes…)
 smartthings.js       Samsung SmartThings OAuth + TV control
-public/              Web UI (index.html, mini.html, smartthings.html, PWA manifest)
+public/              Web UI (index.html, mini.html, smartthings.html, theme.css, PWA manifest)
 desktop/             Electron app: main.js (window, tray, hotkeys), osd.html (volume overlay)
 build/               App and tray icons used by electron-builder
 scripts/make-icon.js Generates the icons
@@ -64,7 +66,7 @@ Only one copy runs at a time: if the app (or another `npm start`) already owns t
 
 ## The web UI
 
-Open **http://localhost:5005**. The tabs:
+Open **http://localhost:5005**. The sections (a sidebar menu on a laptop, which collapses to icons with the button at its bottom; a tab bar at the bottom on a phone):
 
 | Tab | What's there |
 |---|---|
@@ -76,7 +78,7 @@ Open **http://localhost:5005**. The tabs:
 | **Smart home** | Lights, plugs and switches connected to Alexa |
 | **Settings** | Per Echo: Do Not Disturb, equalizer, screen on/off, Bluetooth. Birthdays & anniversaries. Notifications. Phone access |
 
-The header has **Stop all** (stops audio on every Echo), the theme picker (System / Light / Dark, shared with the
+The header has **Stop all** (stops audio on every Echo), the theme picker (System / Light / Dark / Midnight, shared with the
 desktop app) and a **● Live** indicator while instant updates from Amazon are connected.
 
 ### Apple Music & Podcasts
@@ -242,7 +244,7 @@ All endpoints are under `/api`. `device` accepts an Echo or group name (or part 
 | POST | `/api/screen` | `{ "device", "on": false }` | Echo Show screen on/off |
 | GET / POST | `/api/bluetooth`, `/connect`, `/disconnect` | — / `{ "device", "address" }` | Paired Bluetooth devices |
 | GET / POST | `/api/notify` | `{ "alerts": true, "songs": false }` | Notification settings |
-| GET / POST | `/api/ui` | `{ "theme": "system\|light\|dark" }` | Theme (shared with the desktop app) |
+| GET / POST | `/api/ui` | `{ "theme": "system\|light\|dark\|midnight" }` | Theme (shared with the desktop app) |
 | GET / POST | `/api/lan`, `/api/lan/qr` | `{ "enabled": true, "newKey"? }` | Phone access (this PC only) |
 | GET | `/api/events` | — | Server-sent events: volume, media, alerts, lists, eq, bluetooth, activity, scene, alert, song, theme |
 | GET / POST | `/api/tv/…`, `/api/st/…` | | TV through Alexa / SmartThings (power, volume, mute, input, channel, apps, `key`) |

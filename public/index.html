@@ -12,27 +12,10 @@
 <meta name="theme-color" content="#0e8fb8">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<!-- Colour themes (Light / Dark / Midnight), picked in the header and saved on the server, so the browser and the app match -->
+<link rel="stylesheet" href="/theme.css">
 <link rel="stylesheet" href="/extras.css">
 <style>
-  :root {
-    --bg:#f4f6f9; --card:#ffffff; --line:#e3e7ee; --text:#151a22; --muted:#6b7584;
-    --accent:#0e8fb8; --accent-soft:#e3f3f9; --track:#e3e7ee; --danger:#c2412d; --ok:#1f9d55;
-    --shadow:0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.06);
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg:#0f1115; --card:#181b22; --line:#272b35; --text:#e9ecf1; --muted:#8a93a3;
-      --accent:#3ec6e0; --accent-soft:#16303a; --track:#2a2f3a; --danger:#f0785f; --ok:#4ccb83;
-      --shadow:0 20px 50px rgba(0,0,0,.35);
-    }
-  }
-  /* Theme picked in the header (saved on the server, so the browser and the app match) */
-  :root[data-theme="dark"] {
-    --bg:#0f1115; --card:#181b22; --line:#272b35; --text:#e9ecf1; --muted:#8a93a3;
-    --accent:#3ec6e0; --accent-soft:#16303a; --track:#2a2f3a; --danger:#f0785f; --ok:#4ccb83;
-    --shadow:0 20px 50px rgba(0,0,0,.35); color-scheme:dark;
-  }
-  :root[data-theme="light"] { color-scheme:light; }
   * { box-sizing:border-box; }
   [hidden] { display:none !important; }
   /* Desktop app: custom title bar (window buttons are drawn by Windows over the top-right 40px) */
@@ -42,12 +25,53 @@
   .app .titlebar img { width:16px; height:16px; }
   .app header { padding-right:0; }
   .titlebar { display:none; }
-  body { margin:0; min-height:100vh; background:var(--bg); color:var(--text);
+  body { margin:0; min-height:100vh; background:var(--bg-art) fixed; background-color:var(--bg); color:var(--text);
          font-family:Inter, system-ui, sans-serif; padding:24px 16px 40px; }
-  .wrap { max-width:960px; margin:0 auto; }
+  /* Layout: sidebar menu + content; on phones the menu becomes a tab bar at the bottom */
+  .shell { display:grid; grid-template-columns:210px minmax(0, 1fr); gap:24px; max-width:1240px; margin:0 auto; }
+  .wrap { min-width:0; max-width:980px; }
+  .side { position:sticky; top:24px; align-self:start; height:calc(100vh - 48px); display:flex; flex-direction:column; gap:18px;
+          background:var(--card); border:1px solid var(--line); border-radius:18px; padding:16px 10px; box-shadow:var(--shadow); }
+  .app .side { top:52px; height:calc(100vh - 76px); }
+  .brand { display:flex; align-items:center; gap:10px; padding:2px 8px; font-size:16px; font-weight:800; letter-spacing:.03em; white-space:nowrap; }
+  .brand svg { width:26px; height:26px; flex:none; }
+  .brand b { color:var(--accent); font-weight:800; }
+  .side .foot { margin-top:auto; padding:0 8px; font-size:12px; color:var(--muted); white-space:nowrap; }
+  .collapse { display:flex; align-items:center; gap:12px; background:transparent; border:1px solid var(--line); border-radius:12px; color:var(--muted);
+              font:inherit; font-size:13px; font-weight:600; padding:8px 12px; cursor:pointer; white-space:nowrap; }
+  .collapse:hover { color:var(--text); border-color:var(--accent); }
+  .collapse svg { width:18px; height:18px; flex:none; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; transition:transform .2s; }
+  .shell { transition:grid-template-columns .2s ease; }
+  /* Collapsed menu: icons only (names stay readable for screen readers and show as tooltips) */
+  @media (min-width:761px) {
+    .shell.mini { grid-template-columns:68px minmax(0, 1fr); }
+    .shell.mini .side { padding:16px 8px; }
+    .shell.mini .side .brand { justify-content:center; padding:2px 0; }
+    .shell.mini .side .brand span, .shell.mini .side .foot { display:none; }
+    .shell.mini .side .tabs button, .shell.mini .collapse { justify-content:center; padding:10px 0; }
+    .shell.mini .side .l { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+    .shell.mini .collapse { margin-top:auto; }
+    .shell.mini .collapse svg { transform:rotate(180deg); }
+  }
+  @media (prefers-reduced-motion: reduce) { .shell, .collapse svg { transition:none; } }
   header { display:flex; align-items:center; gap:12px; margin-bottom:20px; flex-wrap:wrap; }
-  h1 { font-size:20px; font-weight:700; margin:0; }
+  .hello { display:flex; flex-direction:column; gap:2px; margin-right:6px; }
+  .hello .brand { display:none; padding:0 0 6px; }
+  h1 { font-size:22px; font-weight:700; margin:0; }
+  .hello small { font-size:13px; color:var(--muted); }
   .conn { display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--muted); }
+  header > .conn { padding:5px 11px; border:1px solid var(--line); border-radius:20px; background:var(--card); }
+  @media (max-width:760px) {
+    body { padding-bottom:calc(84px + env(safe-area-inset-bottom)); }
+    .app body { padding-top:52px; }
+    .shell { display:block; }
+    .side { position:fixed; z-index:40; inset:auto 0 0 0; top:auto; height:auto; flex-direction:row; gap:0; padding:6px 4px calc(6px + env(safe-area-inset-bottom));
+            border-radius:18px 18px 0 0; border-bottom:0; background:var(--card-solid); }
+    .app .side { top:auto; height:auto; }
+    .side > .brand, .side .foot, .collapse { display:none; }
+    .hello .brand { display:flex; }
+    .toasts { bottom:calc(84px + env(safe-area-inset-bottom)) !important; }
+  }
   .dot { width:8px; height:8px; border-radius:50%; background:var(--muted); }
   .dot.ok { background:var(--ok); } .dot.bad { background:var(--danger); }
   .spacer { flex:1; }
@@ -241,27 +265,44 @@
 </head>
 <body>
 <div class="titlebar"><img src="/app-icon.png" alt="" />Echo Volume</div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <linearGradient id="logoGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2ec5ff"/><stop offset="1" stop-color="#7a5cff"/></linearGradient>
+  <symbol id="logo" viewBox="0 0 24 24"><rect x="2" y="7" width="5" height="10" rx="2.5" fill="url(#logoGrad)"/>
+    <rect x="9.5" y="2" width="5" height="20" rx="2.5" fill="url(#logoGrad)"/><rect x="17" y="7" width="5" height="10" rx="2.5" fill="url(#logoGrad)"/></symbol>
+</defs></svg>
+<div class="shell">
+<aside class="side">
+  <div class="brand"><svg aria-hidden="true"><use href="#logo"/></svg><span>ECHO <b>VOLUME</b></span></div>
+  <nav class="tabs" id="tabs" aria-label="Sections">
+    <button data-tab="home" class="cur"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span class="l">Home</span><span class="s">Home</span></button>
+    <button data-tab="timers"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M5 3 2 6M19 3l3 3"/></svg><span class="l">Alarms &amp; timers</span><span class="s">Alarms</span></button>
+    <button data-tab="lists"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h12M9 12h12M9 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg><span class="l">Lists</span><span class="s">Lists</span></button>
+    <button data-tab="scenes"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg><span class="l">Scenes</span><span class="s">Scenes</span></button>
+    <button data-tab="alexa"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="11.5" r="8"/><path d="M7 18 5.5 21.5 9.5 19.5"/></svg><span class="l">Alexa</span><span class="s">Alexa</span></button>
+    <button data-tab="smarthome"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21.5h4M12 2.5a6.5 6.5 0 0 0-3.8 11.8c.6.5 1 1.2 1 2V17h5.6v-.7c0-.8.4-1.5 1-2A6.5 6.5 0 0 0 12 2.5z"/></svg><span class="l">Smart home</span><span class="s">Smart</span></button>
+    <button data-tab="settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h9M19 6h1M4 12h3M13 12h7M4 18h11M21 18h-1"/><circle cx="16" cy="6" r="2.5"/><circle cx="10" cy="12" r="2.5"/><circle cx="17.5" cy="18" r="2.5"/></svg><span class="l">Settings</span><span class="s">Settings</span></button>
+  </nav>
+  <div class="foot">Echo · TV · Music · Alexa</div>
+  <button type="button" class="collapse" id="sideToggle" aria-expanded="true" title="Collapse the menu">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg><span class="l">Collapse</span>
+  </button>
+</aside>
 <div class="wrap">
   <header>
-    <h1>Echo Volume</h1>
+    <div class="hello">
+      <div class="brand"><svg aria-hidden="true"><use href="#logo"/></svg><span>ECHO <b>VOLUME</b></span></div>
+      <h1 id="hello">Hello!</h1>
+      <small>Your Echos, TV and music in one place</small>
+    </div>
     <span class="conn"><span class="dot" id="dot"></span><span id="connText">Connecting…</span></span>
     <span class="spacer"></span>
     <label class="toggle"><input type="checkbox" id="showAll" /> Show all devices</label>
     <select class="tool" id="theme" aria-label="Theme">
-      <option value="system">System theme</option><option value="light">Light</option><option value="dark">Dark</option>
+      <option value="system">System theme</option><option value="light">Light</option><option value="dark">Dark</option><option value="midnight">Midnight</option>
     </select>
     <button class="tool stop" id="stopAll" title="Stop audio on every Echo">⏹ Stop all</button>
     <button class="tool" id="refresh">Refresh</button>
   </header>
-  <nav class="tabs" id="tabs" aria-label="Sections">
-    <button data-tab="home" class="cur">Home</button>
-    <button data-tab="timers">Alarms &amp; timers</button>
-    <button data-tab="lists">Lists</button>
-    <button data-tab="scenes">Scenes</button>
-    <button data-tab="alexa">Alexa</button>
-    <button data-tab="smarthome">Smart home</button>
-    <button data-tab="settings">Settings</button>
-  </nav>
   <div class="toasts" id="toasts" aria-live="polite"></div>
   <section class="tab" data-tab="home">
   <div class="card tv" id="stTv" hidden>
@@ -443,6 +484,7 @@
   <section class="tab" data-tab="smarthome" hidden><div id="smarthomeTab"></div></section>
   <section class="tab" data-tab="settings" hidden><div id="settingsTab"></div></section>
 </div>
+</div>
 
 <script>
 if (/Electron/.test(navigator.userAgent)) document.documentElement.classList.add('app');
@@ -461,14 +503,34 @@ const api = (url, body) => fetch('/api' + url, {
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 
 // Theme and the music Echo are saved on the server, so the browser and the desktop app match
+const THEMES = ['light', 'dark', 'midnight'];
 function applyTheme(t) {
-  if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+  if (THEMES.includes(t)) document.documentElement.dataset.theme = t;
   else delete document.documentElement.dataset.theme;
-  $('theme').value = t === 'light' || t === 'dark' ? t : 'system';
+  $('theme').value = THEMES.includes(t) ? t : 'system';
 }
 let uiState = { theme: 'system', musicDevice: '' };
 const uiReady = api('/ui').then((s) => { uiState = s; applyTheme(s.theme); }).catch(() => {});
 $('theme').onchange = () => { applyTheme($('theme').value); api('/ui', { theme: $('theme').value }).catch(() => {}); };
+// Greeting by time of day, refreshed every few minutes (the app stays open all day)
+function greet() {
+  const h = new Date().getHours();
+  $('hello').textContent = h < 5 ? 'Good night!' : h < 12 ? 'Good morning!' : h < 17 ? 'Good afternoon!' : 'Good evening!';
+}
+greet(); setInterval(greet, 5 * 60 * 1000);
+// Collapsible menu (wide screens), remembered on this device
+function setMenuCollapsed(mini) {
+  document.querySelector('.shell').classList.toggle('mini', mini);
+  $('sideToggle').setAttribute('aria-expanded', String(!mini));
+  $('sideToggle').title = mini ? 'Expand the menu' : 'Collapse the menu';
+  document.querySelectorAll('#tabs button').forEach((b) => { b.title = mini ? b.querySelector('.l').textContent : ''; });
+}
+try { setMenuCollapsed(localStorage.getItem('menuCollapsed') === '1'); } catch {}
+$('sideToggle').onclick = () => {
+  const mini = !document.querySelector('.shell').classList.contains('mini');
+  setMenuCollapsed(mini);
+  try { localStorage.setItem('menuCollapsed', mini ? '1' : '0'); } catch {}
+};
 
 const KIND = { KNIGHT:'Echo Show', ECHO:'Echo', ROOK:'Echo', WHA:'Speaker group', VOX:'Alexa app', REAVER:'PC', THIRD_PARTY_AVS_VIDEO_FIRST:'TV' };
 const isMain = (d) => d.online && !['VOX', 'REAVER', 'THIRD_PARTY_AVS_VIDEO_FIRST'].includes(d.family);
@@ -680,8 +742,9 @@ function stShowVol(v) { stVolume = v; $('stVol').textContent = v; $('stSlider').
 function stShowMute(m) { stMuted = m; $('stMute').textContent = m ? 'Unmute' : 'Mute'; $('stMute').classList.toggle('primary', m); }
 function stShowPower(on, online) {
   $('stTv').classList.toggle('off', !on); // volume/channel/input/apps only work while the TV is on
-  $('stDot').className = 'dot ' + (on ? 'ok' : online === false ? 'bad' : '');
-  $('stState').textContent = online === false && !on ? 'Offline' : on ? 'On' : 'Off';
+  // A TV in standby drops off the network, so "offline" just means off
+  $('stDot').className = 'dot ' + (on ? 'ok' : '');
+  $('stState').textContent = on ? 'On' : 'Off';
 }
 async function stRefresh(fast, fromTv) {
   try {

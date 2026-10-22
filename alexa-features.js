@@ -11,6 +11,7 @@ module.exports = function features(ctx) {
   const {
     alexa, p, sequence, resolveDevice, groupMembers, groupMember, commandDevice, textCommand, speakers, musicDevice,
     musicItem, art, store, saveStore, events, CFG, httpErr, wrap, volumeCache, nowCache, syncLan, isLocal, lanKey, musicCountry,
+    stopPlaylist,
   } = ctx;
   const router = express.Router();
   const asSequence = (startNode) => ({ '@type': 'com.amazon.alexa.behaviors.model.Sequence', startNode });
@@ -317,6 +318,7 @@ module.exports = function features(ctx) {
   router.post('/stop-all', wrap(async (_req, res) => {
     const d = speakers()[0];
     if (!d) throw httpErr(503, 'No Echo online');
+    stopPlaylist(); // else a playlist or Surprise mix takes the stop for its song ending and plays the next one
     await sequence(d.serialNumber, asSequence(alexa.createSequenceNode('deviceStopAll', null, d.serialNumber)));
     for (const k of Object.keys(nowCache)) delete nowCache[k];
     res.json({ stopped: true });
@@ -350,13 +352,19 @@ module.exports = function features(ctx) {
     res.json({ device: d.accountName, bass: v('bass'), mid: v('mid'), treble: v('treble') });
   }));
 
-  // Echo Show screen on/off. Amazon's settings API doesn't support the screen on the Echo Show 8, so it goes by
-  // voice. (Brightness can't be set either way: Alexa answers "use the brightness slider".)
+  // Echo Show screen on/off. Amazon's settings API doesn't support the screen on the Echo Show 8 and the Echo has no
+  // screen control as a smart home device, so it goes by voice. (Brightness can't be set either way: Alexa answers
+  // "use the brightness slider".) "display", not "screen": Alexa reads "the screen" as a smart home device name.
+  // "Turn off" usually only works the second time (the Echo wakes its screen to answer the first), so it's sent twice.
+  const SCREEN_OFF_REPEAT_MS = 6000;
   router.post('/screen', wrap(async (req, res) => {
     const d = echoOnly(req.body?.device);
     if (typeof req.body?.on !== 'boolean') throw httpErr(400, '"on" (true or false) is required');
-    const say = `turn ${req.body.on ? 'on' : 'off'} the screen`;
+    const say = `turn ${req.body.on ? 'on' : 'off'} display`;
     await textCommand(d, say);
+    if (!req.body.on) {
+      setTimeout(() => textCommand(d, say).catch((e) => console.log('Screen off (repeat) failed:', e.message)), SCREEN_OFF_REPEAT_MS);
+    }
     res.json({ device: d.accountName, said: say });
   }));
 
@@ -442,9 +450,19 @@ module.exports = function features(ctx) {
 
   // ---------- Smart home: lights, plugs and switches connected to Alexa ----------
   const ops = (e) => e.supportedOperations || [];
+  // Room groups in the Alexa app ("Hallway") are listed as entities too; they aren't devices
+  const isGroup = (e) => e.providerData?.categoryType === 'GROUP';
+  // A friendly label, so two devices with the same name (e.g. a TV through its maker's skill and through its
+  // built-in Alexa) can be told apart
+  const KINDS = { TV: 'TV', LIGHT: 'Light', SMARTPLUG: 'Plug', SWITCH: 'Switch', ALEXA_VOICE_ENABLED: 'Built-in Alexa', FAN: 'Fan' };
+  function kindLabel(e) {
+    const t = e.providerData?.deviceType || e.type || '';
+    const kind = KINDS[t] || (t && t !== 'OTHER' ? t.charAt(0) + t.slice(1).toLowerCase().replace(/_/g, ' ') : 'Device');
+    return e.description && e.description !== e.displayName ? `${kind} · ${e.description}` : kind;
+  }
   router.get('/smarthome/devices', wrap(async (_req, res) => {
     const list = await p((cb) => alexa.getSmarthomeEntities(cb));
-    const devs = (Array.isArray(list) ? list : []).filter((e) => ops(e).includes('turnOn') && ops(e).includes('turnOff'));
+    const devs = (Array.isArray(list) ? list : []).filter((e) => !isGroup(e) && ops(e).includes('turnOn') && ops(e).includes('turnOff'));
     if (!devs.length) return res.json([]);
     const r = await p((cb) => alexa.querySmarthomeDevices(devs.map((e) => e.id), 'ENTITY', cb)).catch(() => null);
     const state = {};
@@ -457,8 +475,14 @@ module.exports = function features(ctx) {
         reachable: get('Alexa.EndpointHealth', 'connectivity')?.value !== 'UNREACHABLE',
       };
     }
+    // Devices Alexa couldn't ask come back as errors: unreachable = off at the wall / in standby, or offline;
+    // anything else (e.g. a TV's built-in Alexa) just doesn't report its state
+    for (const err of r?.errors || []) {
+      const id = err.entity?.entityId;
+      if (id && !state[id]) state[id] = { power: null, brightness: null, reachable: err.code === 'ENDPOINT_UNREACHABLE' ? false : null };
+    }
     res.json(devs.map((e) => ({
-      id: e.id, name: e.displayName, kind: e.providerData?.deviceType || e.type || '',
+      id: e.id, name: e.displayName, kind: kindLabel(e),
       dimmable: ops(e).includes('setBrightness'), ...(state[e.id] || { power: null, brightness: null, reachable: null }),
     })));
   }));

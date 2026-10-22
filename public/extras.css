@@ -5,13 +5,22 @@
 .tool.stop:hover { border-color:var(--danger); color:var(--danger); }
 .live { font-size:12px; color:var(--ok); font-weight:600; }
 
-/* Tabs */
-.tabs { display:flex; gap:4px; margin:-6px 0 16px; overflow-x:auto; scrollbar-width:none; border-bottom:1px solid var(--line); }
-.tabs::-webkit-scrollbar { display:none; }
-.tabs button { background:transparent; border:0; border-bottom:2px solid transparent; color:var(--muted); font:inherit; font-size:14px;
-  font-weight:600; padding:10px 12px; cursor:pointer; white-space:nowrap; margin-bottom:-1px; }
-.tabs button:hover { color:var(--text); }
-.tabs button.cur { color:var(--accent); border-bottom-color:var(--accent); }
+/* Tabs: a menu in the sidebar (index.html), a bottom tab bar on phones */
+.tabs { display:flex; flex-direction:column; gap:4px; }
+.tabs button { display:flex; align-items:center; gap:12px; background:transparent; border:0; border-radius:12px; color:var(--muted);
+  font:inherit; font-size:14px; font-weight:600; padding:10px 12px; cursor:pointer; white-space:nowrap; text-align:left; transition:background .15s, color .15s; }
+.tabs button svg { width:19px; height:19px; flex:none; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.tabs button .s { display:none; }
+.tabs button:hover { color:var(--text); background:var(--accent-soft); }
+.tabs button.cur { color:var(--nav-cur-text); background:var(--nav-cur); }
+.tabs button:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+@media (max-width:760px) {
+  .tabs { flex-direction:row; flex:1; gap:2px; }
+  .tabs button { flex:1 1 0; min-width:0; flex-direction:column; gap:3px; padding:7px 2px; font-size:10.5px; border-radius:10px; }
+  .tabs button svg { width:21px; height:21px; }
+  .tabs button .l { display:none; }
+  .tabs button .s { display:block; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+}
 section.tab > .card, section.tab > div > .card.xcard { margin-bottom:16px; }
 
 /* Toasts */
@@ -152,7 +161,9 @@ section.tab > .card, section.tab > div > .card.xcard { margin-bottom:16px; }
 .phone code { font-size:13px; word-break:break-all; background:var(--bg); border:1px solid var(--line); border-radius:6px; padding:2px 6px; }
 
 /* Smart home */
-.shdev .shstate { font-size:22px; font-weight:700; margin:10px 0; }
+.shdev .shstate { font-size:22px; font-weight:700; margin:10px 0; display:flex; align-items:center; gap:8px; }
+.shdev .shstate.on { color:var(--accent); }
+.shdev .shstate.dim { font-size:14px; font-weight:600; color:var(--muted); min-height:27px; }
 .shdev .row2 { display:flex; gap:8px; margin-bottom:8px; }
 .shdev .row2 button { flex:1; background:transparent; color:var(--text); border:1px solid var(--line); border-radius:10px; padding:10px 0; font:inherit; font-weight:600; cursor:pointer; }
 .shdev .row2 button.on { background:var(--accent-soft); border-color:var(--accent); color:var(--accent); }

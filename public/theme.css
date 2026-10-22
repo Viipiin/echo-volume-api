@@ -1,0 +1,45 @@
+/* Echo Volume: colour themes, shared by every page (index, mini, smartthings).
+   Theme = data-theme on <html>: none (follows the system), "light", "dark" or "midnight".
+   --bg-art is the page background (a gradient for midnight), --card-solid is for popups and dropdowns,
+   which can't be see-through. */
+:root {
+  --bg:#f4f6f9; --card:#ffffff; --card-solid:#ffffff; --line:#e3e7ee; --text:#151a22; --muted:#6b7584;
+  --accent:#0e8fb8; --accent-soft:#e3f3f9; --track:#e3e7ee; --danger:#c2412d; --ok:#1f9d55;
+  --shadow:0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.06);
+  --bg-art:var(--bg); --nav-cur:var(--accent-soft); --nav-cur-text:var(--accent);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:#0f1115; --card:#181b22; --card-solid:#181b22; --line:#272b35; --text:#e9ecf1; --muted:#8a93a3;
+    --accent:#3ec6e0; --accent-soft:#16303a; --track:#2a2f3a; --danger:#f0785f; --ok:#4ccb83;
+    --shadow:0 20px 50px rgba(0,0,0,.35); --bg-art:var(--bg);
+  }
+}
+:root[data-theme="dark"] {
+  --bg:#0f1115; --card:#181b22; --card-solid:#181b22; --line:#272b35; --text:#e9ecf1; --muted:#8a93a3;
+  --accent:#3ec6e0; --accent-soft:#16303a; --track:#2a2f3a; --danger:#f0785f; --ok:#4ccb83;
+  --shadow:0 20px 50px rgba(0,0,0,.35); --bg-art:var(--bg); color-scheme:dark;
+}
+:root[data-theme="light"] { color-scheme:light; }
+
+/* Midnight: deep navy with blue/violet glow and glassy cards */
+:root[data-theme="midnight"] {
+  --bg:#060b1f; --card:rgba(20,34,78,.55); --card-solid:#0d1738; --line:rgba(120,160,255,.16);
+  --text:#eaf0ff; --muted:#8f9cc6; --accent:#2ec5ff; --accent-soft:rgba(46,197,255,.13); --track:rgba(255,255,255,.12);
+  --danger:#ff7d8c; --ok:#3ee08f;
+  --shadow:inset 0 1px 0 rgba(255,255,255,.05), 0 18px 44px rgba(0,2,20,.5);
+  --bg-art:radial-gradient(1100px 620px at 88% -8%, rgba(70,100,255,.34), transparent 62%),
+           radial-gradient(900px 560px at -8% 108%, rgba(138,70,255,.24), transparent 62%),
+           linear-gradient(160deg, #081238 0%, #050a1d 55%, #0a0b2c 100%);
+  --nav-cur:linear-gradient(90deg, #1f7dff, #2ec5ff); --nav-cur-text:#fff;
+  color-scheme:dark;
+}
+:root[data-theme="midnight"] .card,
+:root[data-theme="midnight"] .item { backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); }
+:root[data-theme="midnight"] .vol,
+:root[data-theme="midnight"] .stvol { text-shadow:0 0 22px rgba(46,197,255,.45); }
+:root[data-theme="midnight"] option,
+:root[data-theme="midnight"] optgroup,
+:root[data-theme="midnight"] .plmenu,
+:root[data-theme="midnight"] .toast { background:var(--card-solid); }
+:root[data-theme="midnight"] .tabs button.cur { box-shadow:0 8px 22px -8px rgba(46,160,255,.8); }

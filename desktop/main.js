@@ -52,8 +52,9 @@ function startServer() {
   });
   server.events.on('login-needed', (url) => openLogin(url));
   // Theme picked in the UI: themeSource switches every window (and the title bar via nativeTheme 'updated')
-  nativeTheme.themeSource = server.theme();
-  server.events.on('theme', (t) => { nativeTheme.themeSource = t; });
+  // (Midnight is a dark theme as far as Windows is concerned; colors() gives it its own navy title bar.)
+  nativeTheme.themeSource = toThemeSource(server.theme());
+  server.events.on('theme', (t) => { nativeTheme.themeSource = toThemeSource(t); applyWindowColors(); });
   // Timer/alarm going off, song changes (switched on/off in the app's Settings tab)
   const notify = (n, silent) => {
     if (!Notification.isSupported()) return;
@@ -83,8 +84,10 @@ async function api(url, body) {
 }
 
 // ---------- windows ----------
+const toThemeSource = (t) => (t === 'midnight' ? 'dark' : t);
 const isDark = () => nativeTheme.shouldUseDarkColors;
-const colors = () => (isDark() ? { bg: '#0f1115', fg: '#e9ecf1' } : { bg: '#f4f6f9', fg: '#151a22' });
+const colors = () => (server?.theme() === 'midnight' ? { bg: '#060b1f', fg: '#eaf0ff' }
+  : isDark() ? { bg: '#0f1115', fg: '#e9ecf1' } : { bg: '#f4f6f9', fg: '#151a22' });
 
 function createMainWindow() {
   mainWin = new BrowserWindow({
@@ -116,12 +119,13 @@ function showMain() {
   mainWin.show(); mainWin.focus();
 }
 
-nativeTheme.on('updated', () => {
+function applyWindowColors() {
   if (mainWin && !mainWin.isDestroyed()) {
     mainWin.setBackgroundColor(colors().bg);
     mainWin.setTitleBarOverlay({ color: colors().bg, symbolColor: colors().fg });
   }
-});
+}
+nativeTheme.on('updated', applyWindowColors);
 
 // Links from the UI: SmartThings sign-in opens in an app window that grabs the code itself;
 // other external links open in the default browser.

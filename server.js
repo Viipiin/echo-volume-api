@@ -316,7 +316,7 @@ const saveStore = () => fs.writeFile(STORE_FILE, JSON.stringify(store, null, 2),
 app.get('/api/ui', (_req, res) => res.json({ theme: store.theme, musicDevice: store.musicDevice }));
 app.post('/api/ui', (req, res) => {
   const theme = req.body?.theme;
-  if (!['system', 'light', 'dark'].includes(theme)) return res.status(400).json({ error: '"theme" must be system, light or dark' });
+  if (!['system', 'light', 'dark', 'midnight'].includes(theme)) return res.status(400).json({ error: '"theme" must be system, light, dark or midnight' });
   store.theme = theme; saveStore();
   events.emit('theme', theme); // desktop app: applies it to its windows and title bar
   res.json({ theme });
@@ -430,6 +430,7 @@ app.get('/api/tv/state', wrap(async (_req, res) => {
     const list = await p((cb) => alexa.getSmarthomeEntities(cb));
     tvEntities = (Array.isArray(list) ? list : [])
       .filter((e) => {
+        if (e.providerData?.categoryType === 'GROUP') return false; // a room group that contains the TV
         const ops = (e.supportedOperations || []).join(' ');
         return /turnOn/.test(ops) && (/_TV\./.test(ops) || e.displayName.toLowerCase() === CFG.tvName.toLowerCase());
       })
@@ -443,6 +444,11 @@ app.get('/api/tv/state', wrap(async (_req, res) => {
     const power = caps.find((c) => c.namespace === 'Alexa.PowerController' && c.name === 'powerState');
     const conn = caps.find((c) => c.namespace === 'Alexa.EndpointHealth' && c.name === 'connectivity');
     states[s.entity?.entityId] = { power: power?.value ?? null, reachable: conn ? conn.value?.value === 'OK' : null };
+  }
+  // A TV in standby comes back as an error (ENDPOINT_UNREACHABLE), not a state
+  for (const err of r?.errors || []) {
+    const id = err.entity?.entityId;
+    if (id && !states[id] && err.code === 'ENDPOINT_UNREACHABLE') states[id] = { power: 'OFF', reachable: false };
   }
   res.json(tvEntities.map((t) => ({ ...t, ...(states[t.id] || { power: null, reachable: null }) })));
 }));
@@ -1102,6 +1108,13 @@ app.post('/api/routines/run', wrap(async (req, res) => {
   if (!r) throw httpErr(404, 'Routine not found. Refresh the list.');
   let dev = commandDevice(req.body?.device);
   if (dev.deviceFamily === 'WHA') dev = groupMember(dev); // groups can't run sequences themselves
+  // A routine takes over: end a playlist or Surprise mix and pause it first. Otherwise the checks take the routine
+  // interrupting the song for the song ending and start the next one, and the mix plays on after the routine.
+  if (plRun) {
+    const serial = plRun.serial;
+    stopPlaylist();
+    await p((cb) => alexa.sendCommand(serial, 'pause', null, cb)).catch(() => {});
+  }
   await sequence(dev.serialNumber, r);
   res.json({ ran: routineName(r), via: dev.accountName });
 }));
@@ -1134,7 +1147,7 @@ function syncLan() {
 // Alarms & timers, lists, scenes, Do Not Disturb, equalizer, Bluetooth, sounds, smart home, radio, live updates…
 features = require('./alexa-features')({
   alexa, p, sequence, resolveDevice, groupMembers, groupMember, commandDevice, textCommand, speakers, musicDevice,
-  musicItem, art, store, saveStore, events, CFG, httpErr, wrap, volumeCache, nowCache, syncLan, isLocal, lanKey,
+  musicItem, art, store, saveStore, events, CFG, httpErr, wrap, volumeCache, nowCache, syncLan, isLocal, lanKey, stopPlaylist,
   musicCountry: MUSIC_COUNTRY,
 });
 app.use('/api', features.router);
