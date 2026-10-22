@@ -350,13 +350,19 @@ module.exports = function features(ctx) {
     res.json({ device: d.accountName, bass: v('bass'), mid: v('mid'), treble: v('treble') });
   }));
 
-  // Echo Show screen on/off. Amazon's settings API doesn't support the screen on the Echo Show 8, so it goes by
-  // voice. (Brightness can't be set either way: Alexa answers "use the brightness slider".)
+  // Echo Show screen on/off. Amazon's settings API doesn't support the screen on the Echo Show 8 and the Echo has no
+  // screen control as a smart home device, so it goes by voice. (Brightness can't be set either way: Alexa answers
+  // "use the brightness slider".) "display", not "screen": Alexa reads "the screen" as a smart home device name.
+  // "Turn off" usually only works the second time (the Echo wakes its screen to answer the first), so it's sent twice.
+  const SCREEN_OFF_REPEAT_MS = 6000;
   router.post('/screen', wrap(async (req, res) => {
     const d = echoOnly(req.body?.device);
     if (typeof req.body?.on !== 'boolean') throw httpErr(400, '"on" (true or false) is required');
-    const say = `turn ${req.body.on ? 'on' : 'off'} the screen`;
+    const say = `turn ${req.body.on ? 'on' : 'off'} display`;
     await textCommand(d, say);
+    if (!req.body.on) {
+      setTimeout(() => textCommand(d, say).catch((e) => console.log('Screen off (repeat) failed:', e.message)), SCREEN_OFF_REPEAT_MS);
+    }
     res.json({ device: d.accountName, said: say });
   }));
 
