@@ -110,17 +110,21 @@ function nowPlaying(channel, channelName, input, inputs) {
   return null;
 }
 
-// fast=true: one request (status only) for frequent polling; name/health come from the last full read
+// fast=true: skips the device details (name) for frequent polling; health is read every time, because it's
+// what tells us the TV is off: once the TV goes offline SmartThings keeps the last switch value ("on") and app.
 let tvMeta = { name: null, online: null };
+let poweredOnAt = 0; // a TV just switched on reports itself online a few seconds later; trust the switch until then
 async function tvStatus(fast) {
   const id = await tvDeviceId();
   const [dev, status, health] = await Promise.all([
     fast && tvMeta.name ? null : st('GET', `/v1/devices/${id}`),
     st('GET', `/v1/devices/${id}/components/main/status`),
-    fast && tvMeta.name ? null : st('GET', `/v1/devices/${id}/health`).catch(() => ({})),
+    st('GET', `/v1/devices/${id}/health`).catch(() => ({})),
   ]);
-  if (dev) tvMeta = { name: dev.label || dev.name, online: health?.state ? health.state === 'ONLINE' : null };
-  const v = (cap, attr) => status[cap]?.[attr]?.value ?? null;
+  if (dev) tvMeta.name = dev.label || dev.name;
+  tvMeta.online = health?.state ? health.state === 'ONLINE' : null;
+  const offline = tvMeta.online === false && Date.now() - poweredOnAt > 60000;
+  const v = (cap, attr) => (cap === 'switch' && offline ? 'off' : status[cap]?.[attr]?.value ?? null);
   // Samsung TVs list inputs as [{id, name}] in samsungvd.mediaInputSource; standard capability as plain ids
   const samsungInputs = v('samsungvd.mediaInputSource', 'supportedInputSourcesMap');
   const inputs = Array.isArray(samsungInputs) && samsungInputs.length
@@ -223,6 +227,7 @@ router.get('/tv', wrap(async (req, res) => {
 router.post('/tv/power', wrap(async (req, res) => {
   const on = req.body?.on !== false;
   await command('switch', on ? 'on' : 'off');
+  poweredOnAt = on ? Date.now() : 0;
   res.json({ power: on ? 'on' : 'off' });
 }));
 

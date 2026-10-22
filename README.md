@@ -64,7 +64,7 @@ Only one copy runs at a time: if the app (or another `npm start`) already owns t
 
 ## The web UI
 
-Open **http://localhost:5005**. The sections (a sidebar menu on a laptop, a tab bar at the bottom on a phone):
+Open **http://localhost:5005**. The sections (a sidebar menu on a laptop, which collapses to icons with the button at its bottom; a tab bar at the bottom on a phone):
 
 | Tab | What's there |
 |---|---|

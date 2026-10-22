@@ -36,7 +36,24 @@
   .brand { display:flex; align-items:center; gap:10px; padding:2px 8px; font-size:16px; font-weight:800; letter-spacing:.03em; white-space:nowrap; }
   .brand svg { width:26px; height:26px; flex:none; }
   .brand b { color:var(--accent); font-weight:800; }
-  .side .foot { margin-top:auto; padding:0 8px; font-size:12px; color:var(--muted); }
+  .side .foot { margin-top:auto; padding:0 8px; font-size:12px; color:var(--muted); white-space:nowrap; }
+  .collapse { display:flex; align-items:center; gap:12px; background:transparent; border:1px solid var(--line); border-radius:12px; color:var(--muted);
+              font:inherit; font-size:13px; font-weight:600; padding:8px 12px; cursor:pointer; white-space:nowrap; }
+  .collapse:hover { color:var(--text); border-color:var(--accent); }
+  .collapse svg { width:18px; height:18px; flex:none; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; transition:transform .2s; }
+  .shell { transition:grid-template-columns .2s ease; }
+  /* Collapsed menu: icons only (names stay readable for screen readers and show as tooltips) */
+  @media (min-width:761px) {
+    .shell.mini { grid-template-columns:68px minmax(0, 1fr); }
+    .shell.mini .side { padding:16px 8px; }
+    .shell.mini .side .brand { justify-content:center; padding:2px 0; }
+    .shell.mini .side .brand span, .shell.mini .side .foot { display:none; }
+    .shell.mini .side .tabs button, .shell.mini .collapse { justify-content:center; padding:10px 0; }
+    .shell.mini .side .l { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+    .shell.mini .collapse { margin-top:auto; }
+    .shell.mini .collapse svg { transform:rotate(180deg); }
+  }
+  @media (prefers-reduced-motion: reduce) { .shell, .collapse svg { transition:none; } }
   header { display:flex; align-items:center; gap:12px; margin-bottom:20px; flex-wrap:wrap; }
   .hello { display:flex; flex-direction:column; gap:2px; margin-right:6px; }
   .hello .brand { display:none; padding:0 0 6px; }
@@ -51,7 +68,7 @@
     .side { position:fixed; z-index:40; inset:auto 0 0 0; top:auto; height:auto; flex-direction:row; gap:0; padding:6px 4px calc(6px + env(safe-area-inset-bottom));
             border-radius:18px 18px 0 0; border-bottom:0; background:var(--card-solid); }
     .app .side { top:auto; height:auto; }
-    .side > .brand, .side .foot { display:none; }
+    .side > .brand, .side .foot, .collapse { display:none; }
     .hello .brand { display:flex; }
     .toasts { bottom:calc(84px + env(safe-area-inset-bottom)) !important; }
   }
@@ -266,6 +283,9 @@
     <button data-tab="settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h9M19 6h1M4 12h3M13 12h7M4 18h11M21 18h-1"/><circle cx="16" cy="6" r="2.5"/><circle cx="10" cy="12" r="2.5"/><circle cx="17.5" cy="18" r="2.5"/></svg><span class="l">Settings</span><span class="s">Settings</span></button>
   </nav>
   <div class="foot">Echo · TV · Music · Alexa</div>
+  <button type="button" class="collapse" id="sideToggle" aria-expanded="true" title="Collapse the menu">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg><span class="l">Collapse</span>
+  </button>
 </aside>
 <div class="wrap">
   <header>
@@ -498,6 +518,19 @@ function greet() {
   $('hello').textContent = h < 5 ? 'Good night!' : h < 12 ? 'Good morning!' : h < 17 ? 'Good afternoon!' : 'Good evening!';
 }
 greet(); setInterval(greet, 5 * 60 * 1000);
+// Collapsible menu (wide screens), remembered on this device
+function setMenuCollapsed(mini) {
+  document.querySelector('.shell').classList.toggle('mini', mini);
+  $('sideToggle').setAttribute('aria-expanded', String(!mini));
+  $('sideToggle').title = mini ? 'Expand the menu' : 'Collapse the menu';
+  document.querySelectorAll('#tabs button').forEach((b) => { b.title = mini ? b.querySelector('.l').textContent : ''; });
+}
+try { setMenuCollapsed(localStorage.getItem('menuCollapsed') === '1'); } catch {}
+$('sideToggle').onclick = () => {
+  const mini = !document.querySelector('.shell').classList.contains('mini');
+  setMenuCollapsed(mini);
+  try { localStorage.setItem('menuCollapsed', mini ? '1' : '0'); } catch {}
+};
 
 const KIND = { KNIGHT:'Echo Show', ECHO:'Echo', ROOK:'Echo', WHA:'Speaker group', VOX:'Alexa app', REAVER:'PC', THIRD_PARTY_AVS_VIDEO_FIRST:'TV' };
 const isMain = (d) => d.online && !['VOX', 'REAVER', 'THIRD_PARTY_AVS_VIDEO_FIRST'].includes(d.family);
@@ -709,8 +742,9 @@ function stShowVol(v) { stVolume = v; $('stVol').textContent = v; $('stSlider').
 function stShowMute(m) { stMuted = m; $('stMute').textContent = m ? 'Unmute' : 'Mute'; $('stMute').classList.toggle('primary', m); }
 function stShowPower(on, online) {
   $('stTv').classList.toggle('off', !on); // volume/channel/input/apps only work while the TV is on
-  $('stDot').className = 'dot ' + (on ? 'ok' : online === false ? 'bad' : '');
-  $('stState').textContent = online === false && !on ? 'Offline' : on ? 'On' : 'Off';
+  // A TV in standby drops off the network, so "offline" just means off
+  $('stDot').className = 'dot ' + (on ? 'ok' : '');
+  $('stState').textContent = on ? 'On' : 'Off';
 }
 async function stRefresh(fast, fromTv) {
   try {
