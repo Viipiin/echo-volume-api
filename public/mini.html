@@ -4,12 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Quick controls</title>
+<link rel="stylesheet" href="/theme.css">
 <style>
-  :root { --bg:#f4f6f9; --card:#fff; --line:#e3e7ee; --text:#151a22; --muted:#6b7584; --accent:#0e8fb8; --accent-soft:#e3f3f9; --danger:#c2412d; }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) { --bg:#0f1115; --card:#181b22; --line:#272b35; --text:#e9ecf1; --muted:#8a93a3; --accent:#3ec6e0; --accent-soft:#16303a; --danger:#f0785f; }
-  }
-  :root[data-theme="dark"] { --bg:#0f1115; --card:#181b22; --line:#272b35; --text:#e9ecf1; --muted:#8a93a3; --accent:#3ec6e0; --accent-soft:#16303a; --danger:#f0785f; }
   .music { display:flex; align-items:center; gap:10px; }
   .music img, .music .ph { width:40px; height:40px; border-radius:6px; object-fit:cover; flex:none; background:var(--line); }
   .music .meta { flex:1; min-width:0; }
@@ -18,7 +14,7 @@
   .music .ctl button.main { background:var(--accent); border-color:var(--accent); color:#fff; }
   * { box-sizing:border-box; }
   html, body { margin:0; height:100%; }
-  body { background:var(--bg); color:var(--text); font-family:"Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  body { background:var(--bg-art); background-color:var(--bg); color:var(--text); font-family:"Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
          font-size:13px; border:1px solid var(--line); overflow:auto; user-select:none; }
   header { padding:12px 14px 6px; font-weight:600; font-size:14px; display:flex; justify-content:space-between; align-items:center; }
   header span { color:var(--muted); font-weight:400; font-size:12px; }
@@ -75,7 +71,7 @@ function show(id, v, max, muted) {
 const err = (id, m) => { const e = part(id, 'err'); if (e) e.textContent = m || ''; };
 
 // Same theme as the main window (saved on the server)
-api('/ui').then((s) => { if (s.theme === 'light' || s.theme === 'dark') document.documentElement.dataset.theme = s.theme; }).catch(() => {});
+api('/ui').then((s) => { if (['light', 'dark', 'midnight'].includes(s.theme)) document.documentElement.dataset.theme = s.theme; }).catch(() => {});
 
 // Music on the Echo last used in the app (the server remembers it)
 let playing = false;

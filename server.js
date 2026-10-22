@@ -316,7 +316,7 @@ const saveStore = () => fs.writeFile(STORE_FILE, JSON.stringify(store, null, 2),
 app.get('/api/ui', (_req, res) => res.json({ theme: store.theme, musicDevice: store.musicDevice }));
 app.post('/api/ui', (req, res) => {
   const theme = req.body?.theme;
-  if (!['system', 'light', 'dark'].includes(theme)) return res.status(400).json({ error: '"theme" must be system, light or dark' });
+  if (!['system', 'light', 'dark', 'midnight'].includes(theme)) return res.status(400).json({ error: '"theme" must be system, light, dark or midnight' });
   store.theme = theme; saveStore();
   events.emit('theme', theme); // desktop app: applies it to its windows and title bar
   res.json({ theme });

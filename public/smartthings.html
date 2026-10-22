@@ -5,14 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Connect SmartThings</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/theme.css">
 <style>
-  :root { --bg:#f4f6f9; --card:#fff; --line:#e3e7ee; --text:#151a22; --muted:#6b7584; --accent:#0e8fb8; --danger:#c2412d; --ok:#1f9d55; }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) { --bg:#0f1115; --card:#181b22; --line:#272b35; --text:#e9ecf1; --muted:#8a93a3; --accent:#3ec6e0; --danger:#f0785f; --ok:#4ccb83; }
-  }
-  :root[data-theme="dark"] { --bg:#0f1115; --card:#181b22; --line:#272b35; --text:#e9ecf1; --muted:#8a93a3; --accent:#3ec6e0; --danger:#f0785f; --ok:#4ccb83; }
   * { box-sizing:border-box; }
-  body { margin:0; min-height:100vh; background:var(--bg); color:var(--text); font-family:Inter, system-ui, sans-serif; padding:24px 16px; }
+  body { margin:0; min-height:100vh; background:var(--bg-art) fixed; background-color:var(--bg); color:var(--text); font-family:Inter, system-ui, sans-serif; padding:24px 16px; }
   .card { max-width:560px; margin:0 auto; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:24px; }
   h1 { font-size:20px; margin:0 0 6px; }
   p, li { color:var(--muted); font-size:14px; line-height:1.55; }
@@ -53,7 +49,7 @@ const api = (url, body) => fetch('/api/st' + url, {
 const status = (t, cls) => { $('status').textContent = t; $('status').className = 'status ' + (cls || ''); };
 // Same theme as the main page (saved on the server)
 fetch('/api/ui', { headers: key ? { 'x-api-key': key } : {} }).then((r) => r.json())
-  .then((s) => { if (s.theme === 'light' || s.theme === 'dark') document.documentElement.dataset.theme = s.theme; }).catch(() => {});
+  .then((s) => { if (['light', 'dark', 'midnight'].includes(s.theme)) document.documentElement.dataset.theme = s.theme; }).catch(() => {});
 
 // Accepts the httpbin JSON, the redirect URL, or the bare code
 function extract(text) {
