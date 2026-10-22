@@ -430,6 +430,7 @@ app.get('/api/tv/state', wrap(async (_req, res) => {
     const list = await p((cb) => alexa.getSmarthomeEntities(cb));
     tvEntities = (Array.isArray(list) ? list : [])
       .filter((e) => {
+        if (e.providerData?.categoryType === 'GROUP') return false; // a room group that contains the TV
         const ops = (e.supportedOperations || []).join(' ');
         return /turnOn/.test(ops) && (/_TV\./.test(ops) || e.displayName.toLowerCase() === CFG.tvName.toLowerCase());
       })
@@ -443,6 +444,11 @@ app.get('/api/tv/state', wrap(async (_req, res) => {
     const power = caps.find((c) => c.namespace === 'Alexa.PowerController' && c.name === 'powerState');
     const conn = caps.find((c) => c.namespace === 'Alexa.EndpointHealth' && c.name === 'connectivity');
     states[s.entity?.entityId] = { power: power?.value ?? null, reachable: conn ? conn.value?.value === 'OK' : null };
+  }
+  // A TV in standby comes back as an error (ENDPOINT_UNREACHABLE), not a state
+  for (const err of r?.errors || []) {
+    const id = err.entity?.entityId;
+    if (id && !states[id] && err.code === 'ENDPOINT_UNREACHABLE') states[id] = { power: 'OFF', reachable: false };
   }
   res.json(tvEntities.map((t) => ({ ...t, ...(states[t.id] || { power: null, reachable: null }) })));
 }));

@@ -161,7 +161,9 @@ section.tab > .card, section.tab > div > .card.xcard { margin-bottom:16px; }
 .phone code { font-size:13px; word-break:break-all; background:var(--bg); border:1px solid var(--line); border-radius:6px; padding:2px 6px; }
 
 /* Smart home */
-.shdev .shstate { font-size:22px; font-weight:700; margin:10px 0; }
+.shdev .shstate { font-size:22px; font-weight:700; margin:10px 0; display:flex; align-items:center; gap:8px; }
+.shdev .shstate.on { color:var(--accent); }
+.shdev .shstate.dim { font-size:14px; font-weight:600; color:var(--muted); min-height:27px; }
 .shdev .row2 { display:flex; gap:8px; margin-bottom:8px; }
 .shdev .row2 button { flex:1; background:transparent; color:var(--text); border:1px solid var(--line); border-radius:10px; padding:10px 0; font:inherit; font-weight:600; cursor:pointer; }
 .shdev .row2 button.on { background:var(--accent-soft); border-color:var(--accent); color:var(--accent); }

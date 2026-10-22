@@ -556,11 +556,12 @@
     try {
       const list = await api('/smarthome/devices');
       $('smarthomeTab').innerHTML = `<div class="card xcard"><div class="top"><span class="name">Smart home</span><button id="shRefresh">Refresh</button></div>
-        <p class="kind">Lights, plugs and switches connected to Alexa. Devices you add in the Alexa app appear here.${list.every((d) => /tv/i.test(d.kind)) ? ' (So far your account only has TVs.)' : ''}</p>
+        <p class="kind">Devices connected to Alexa that can be switched on and off: lights, plugs, switches, TVs. Devices you add in the Alexa app appear here.${list.length && list.every((d) => /^(TV|Built-in Alexa)\b/.test(d.kind)) ? ' So far your account only has a TV, which can be listed twice: once through its maker’s skill and once through its built-in Alexa.' : ''}</p>
         <div class="status" id="shStatus"></div></div>
         <div class="grid">${list.map((d) => `<div class="card shdev" data-id="${esc(d.id)}">
           <div class="top"><span class="name">${esc(d.name)}</span><span class="kind">${esc(d.kind)}</span></div>
-          <div class="shstate">${d.reachable === false ? 'Not reachable' : d.power === 'ON' ? 'On' : d.power === 'OFF' ? 'Off' : 'Unknown'}</div>
+          ${d.power === 'ON' ? '<div class="shstate on">On</div>' : d.power === 'OFF' ? '<div class="shstate">Off</div>'
+            : d.reachable === false ? '<div class="shstate dim">Off or not reachable</div>' : '<div class="shstate dim">Doesn’t report whether it’s on</div>'}
           <div class="row2"><button data-sh="turnOn" class="${d.power === 'ON' ? 'on' : ''}">On</button><button data-sh="turnOff" class="${d.power === 'OFF' ? 'on' : ''}">Off</button></div>
           ${d.dimmable ? `<label class="kind">Brightness <input type="range" min="0" max="100" value="${esc(d.brightness ?? 50)}" data-sh="setBrightness" /></label>` : ''}
         </div>`).join('')}</div>`;
