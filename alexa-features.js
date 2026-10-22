@@ -11,6 +11,7 @@ module.exports = function features(ctx) {
   const {
     alexa, p, sequence, resolveDevice, groupMembers, groupMember, commandDevice, textCommand, speakers, musicDevice,
     musicItem, art, store, saveStore, events, CFG, httpErr, wrap, volumeCache, nowCache, syncLan, isLocal, lanKey, musicCountry,
+    stopPlaylist,
   } = ctx;
   const router = express.Router();
   const asSequence = (startNode) => ({ '@type': 'com.amazon.alexa.behaviors.model.Sequence', startNode });
@@ -317,6 +318,7 @@ module.exports = function features(ctx) {
   router.post('/stop-all', wrap(async (_req, res) => {
     const d = speakers()[0];
     if (!d) throw httpErr(503, 'No Echo online');
+    stopPlaylist(); // else a playlist or Surprise mix takes the stop for its song ending and plays the next one
     await sequence(d.serialNumber, asSequence(alexa.createSequenceNode('deviceStopAll', null, d.serialNumber)));
     for (const k of Object.keys(nowCache)) delete nowCache[k];
     res.json({ stopped: true });

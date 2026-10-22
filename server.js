@@ -1108,6 +1108,13 @@ app.post('/api/routines/run', wrap(async (req, res) => {
   if (!r) throw httpErr(404, 'Routine not found. Refresh the list.');
   let dev = commandDevice(req.body?.device);
   if (dev.deviceFamily === 'WHA') dev = groupMember(dev); // groups can't run sequences themselves
+  // A routine takes over: end a playlist or Surprise mix and pause it first. Otherwise the checks take the routine
+  // interrupting the song for the song ending and start the next one, and the mix plays on after the routine.
+  if (plRun) {
+    const serial = plRun.serial;
+    stopPlaylist();
+    await p((cb) => alexa.sendCommand(serial, 'pause', null, cb)).catch(() => {});
+  }
   await sequence(dev.serialNumber, r);
   res.json({ ran: routineName(r), via: dev.accountName });
 }));
@@ -1140,7 +1147,7 @@ function syncLan() {
 // Alarms & timers, lists, scenes, Do Not Disturb, equalizer, Bluetooth, sounds, smart home, radio, live updates…
 features = require('./alexa-features')({
   alexa, p, sequence, resolveDevice, groupMembers, groupMember, commandDevice, textCommand, speakers, musicDevice,
-  musicItem, art, store, saveStore, events, CFG, httpErr, wrap, volumeCache, nowCache, syncLan, isLocal, lanKey,
+  musicItem, art, store, saveStore, events, CFG, httpErr, wrap, volumeCache, nowCache, syncLan, isLocal, lanKey, stopPlaylist,
   musicCountry: MUSIC_COUNTRY,
 });
 app.use('/api', features.router);
