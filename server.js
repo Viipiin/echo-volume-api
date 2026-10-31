@@ -317,6 +317,11 @@ const store = {
   celebrations: [], celebrate: { enabled: true, time: '09:00', device: 'all', sound: '' }, celebrated: {},
 };
 try { Object.assign(store, JSON.parse(fs.readFileSync(STORE_FILE, 'utf8'))); } catch {}
+// Settings added in later versions: filled in for files written before them (what's in the file always wins)
+store.notify = { alerts: true, songs: false, moods: true, ...store.notify };
+store.celebrate = { enabled: true, time: '09:00', device: 'all', sound: '', ...store.celebrate };
+store.phone = { enabled: false, key: '', ...store.phone };
+store.moods = require('./moods').migrate(store.moods, console.log);
 
 // A JSON file written a moment after the last change, one write at a time, through a temp file (a crash mid-write
 // can't leave half a file). Whatever is still waiting is written when the process exits.
