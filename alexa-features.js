@@ -596,7 +596,7 @@ module.exports = function features(ctx) {
   }));
 
   // ---------- Scenes: several actions in one tap, optionally on a schedule ----------
-  const STEP_TYPES = ['volume', 'music', 'pause', 'resume', 'sleep', 'tv', 'dnd', 'screen', 'announce', 'routine', 'sound', 'alexa', 'stopall', 'wait'];
+  const STEP_TYPES = ['volume', 'music', 'mood', 'moodstop', 'pause', 'resume', 'sleep', 'tv', 'dnd', 'screen', 'announce', 'routine', 'sound', 'alexa', 'stopall', 'wait'];
   function cleanScene(s) {
     const name = text(s?.name, 60);
     if (!name) throw httpErr(400, 'Give the scene a name');
@@ -610,8 +610,9 @@ module.exports = function features(ctx) {
     });
     if (!steps.length) throw httpErr(400, 'Add at least one step');
     const sch = s.schedule;
-    const schedule = sch?.enabled && /^([01]\d|2[0-3]):[0-5]\d$/.test(sch.time || '')
-      ? { enabled: true, time: sch.time, days: (Array.isArray(sch.days) ? sch.days : []).map(Number).filter((d) => d >= 0 && d <= 6) }
+    // A schedule switched off keeps its time and days, so turning it back on (or an example scene) needs no retyping
+    const schedule = /^([01]\d|2[0-3]):[0-5]\d$/.test(sch?.time || '')
+      ? { enabled: !!sch.enabled, time: sch.time, days: (Array.isArray(sch.days) ? sch.days : []).map(Number).filter((d) => d >= 0 && d <= 6) }
       : null;
     return { id: /^[\w-]{4,40}$/.test(s.id || '') ? s.id : crypto.randomUUID(), name, steps, schedule };
   }
@@ -647,6 +648,9 @@ module.exports = function features(ctx) {
   const STEP = {
     volume: (s) => self('POST', '/volume', { device: s.device, level: (s.level ?? 5) * 10 }),
     music: (s) => self('POST', '/music/play', { device: s.device, query: s.query, provider: s.provider }),
+    // A mood with its own volume and sleep timer unless the step sets them (minutes 0 = no sleep timer)
+    mood: (s) => self('POST', '/moods/play', { device: s.device, moodId: s.id, volume: s.level, sleepMinutes: s.minutes }),
+    moodstop: () => self('POST', '/moods/stop', {}),
     pause: (s) => self('POST', '/music/pause', { device: s.device }),
     resume: (s) => self('POST', '/music/play', { device: s.device }),
     sleep: (s) => self('POST', '/music/sleep', { device: s.device, minutes: s.minutes ?? 30 }),

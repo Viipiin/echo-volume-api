@@ -291,7 +291,7 @@
 
   // ---------- Scenes ----------
   const scStatus = statusIn('scStatus');
-  let scenes = [], routines = null, sounds = null, editing = null;
+  let scenes = [], routines = null, sounds = null, moodList = [], editing = null;
   const DAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
   const DAY_LONG = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const ALEXA_DO = { weather: 'Weather', traffic: 'Traffic', flashbriefing: 'News (flash briefing)', goodmorning: 'Good morning',
@@ -299,6 +299,8 @@
   const STEPS = {
     volume: ['Echo volume', ['device', 'level']],
     music: ['Play music', ['device', 'query', 'provider']],
+    mood: ['Play a mood', ['device', 'mood', 'moodvol', 'moodsleep']],
+    moodstop: ['Stop the mood', []],
     pause: ['Pause music', ['device']],
     resume: ['Resume music', ['device']],
     sleep: ['Sleep timer', ['device', 'minutes']],
@@ -327,6 +329,9 @@
       case 'text': return `<input data-f="text" maxlength="250" placeholder="What Alexa says" value="${esc(s.text || '')}" />`;
       case 'routine': return `<select data-f="id" aria-label="Routine">${opts((routines || []).map((r) => [r.id, r.name]), s.id)}</select>`;
       case 'sound': return `<select data-f="id" aria-label="Sound">${opts((sounds || []).map((x) => [x.id, `${x.name} (${x.category})`]), s.id)}</select>`;
+      case 'mood': return `<select data-f="id" aria-label="Mood">${moodList.length ? opts(moodList.map((m) => [m.id, m.name]), s.id) : '<option value="">No moods</option>'}</select>`;
+      case 'moodvol': return `<select data-f="level" aria-label="Volume">${opts([['', "Mood's volume"], ...Array.from({ length: 11 }, (_, i) => [i, `Volume ${i}`])], s.level ?? '')}</select>`;
+      case 'moodsleep': return `<select data-f="minutes" aria-label="Sleep timer">${opts([['', "Mood's sleep timer"], [0, 'No sleep timer'], [15, 'Sleep 15 min'], [30, 'Sleep 30 min'], [45, 'Sleep 45 min'], [60, 'Sleep 1 hour'], [90, 'Sleep 1.5 hours'], [120, 'Sleep 2 hours']], s.minutes ?? '')}</select>`;
       case 'action': return `<select data-f="action" aria-label="What">${opts(Object.entries(ALEXA_DO), s.action)}</select>`;
       case 'seconds': return `<label><input type="number" data-f="seconds" min="1" max="600" value="${esc(s.seconds ?? 5)}" class="num" /> seconds</label>`;
       case 'tvaction': return `<select data-f="action" class="tvact" aria-label="TV action">${opts([['on', 'Turn on'], ['off', 'Turn off'], ['volume', 'Set volume'], ['mute', 'Mute'], ['unmute', 'Unmute'], ['app', 'Open app']], s.action || 'on')}</select>
@@ -352,6 +357,8 @@
     switch (s.type) {
       case 'volume': return `${dev(s.device)} volume ${s.level}`;
       case 'music': return `Play “${s.query}”${s.provider === 'TUNEIN' ? ' (radio)' : ''} on ${dev(s.device)}`;
+      case 'mood': return `Mood: ${moodList.find((m) => m.id === s.id)?.name || s.id} on ${dev(s.device)}${s.level != null ? `, volume ${s.level}` : ''}${s.minutes ? `, sleep ${s.minutes} min` : ''}`;
+      case 'moodstop': return 'Stop the mood';
       case 'pause': return `Pause ${dev(s.device)}`;
       case 'resume': return `Resume ${dev(s.device)}`;
       case 'sleep': return `Sleep timer ${s.minutes} min`;
@@ -367,12 +374,19 @@
       default: return s.type;
     }
   };
-  const scheduleText = (sc) => (sc.schedule?.enabled
-    ? `${sc.schedule.days?.length && sc.schedule.days.length < 7 ? sc.schedule.days.map((d) => DAY_LONG[d]).join(', ') : 'Every day'} at ${fmtClock(sc.schedule.time)}` : '');
+  const scheduleText = (sc) => {
+    const s = sc.schedule;
+    if (!s?.time) return '';
+    const days = [...(s.days || [])].sort().join();
+    const which = !days || days === '0,1,2,3,4,5,6' ? 'Every day' : days === '1,2,3,4,5' ? 'Weekdays' : days === '0,6' ? 'Weekends' : s.days.map((d) => DAY_LONG[d]).join(', ');
+    const when = `${which} at ${fmtClock(s.time)}`;
+    return s.enabled ? when : `Schedule off (${when})`;
+  };
   async function loadScenes() {
     try {
       [scenes] = await Promise.all([api('/scenes'), routines ? null : api('/routines').then((r) => { routines = r; }).catch(() => { routines = []; }),
-        sounds ? null : api('/sounds').then((r) => { sounds = r; }).catch(() => { sounds = []; })]);
+        sounds ? null : api('/sounds').then((r) => { sounds = r; }).catch(() => { sounds = []; }),
+        api('/moods').then((r) => { moodList = r.moods || []; }).catch(() => { moodList = []; })]);
       await whenDevices();
       renderScenes();
     } catch (e) { $('scenesTab').innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
@@ -381,7 +395,7 @@
     if (editing) return; // don't wipe an open editor
     $('scenesTab').innerHTML = `
       <div class="card xcard"><div class="top"><span class="name">Scenes</span>
-        <span class="sbtns">${scenes.length ? '' : '<button id="scExamples">Add examples</button>'}<button class="go" id="scNew">New scene</button></span></div>
+        <span class="sbtns">${scenes.length ? '' : '<button id="scExamples">Add examples</button>'}${moodList.length && !scenes.some((sc) => sc.steps.some((st) => st.type === 'mood')) ? `<button id="scMoodExamples">${UI.icon('moods', 'sm')}Add mood examples</button>` : ''}<button class="go" id="scNew">New scene</button></span></div>
         <p class="kind">A scene does several things in one tap, e.g. “Movie time”: TV on, Echos down to 3, open YouTube. Scenes can also run on a schedule while Echo Volume is running.</p>
         <div class="status" id="scStatus"></div>
       </div>
@@ -393,6 +407,7 @@
       </div>`).join('')}`;
     $('scNew').onclick = () => editScene({ name: '', steps: [{ type: 'volume', device: speakerList()[0]?.serial, level: 4 }], schedule: null });
     if ($('scExamples')) $('scExamples').onclick = addExamples;
+    if ($('scMoodExamples')) $('scMoodExamples').onclick = addMoodExamples;
   }
   function editScene(sc) {
     editing = sc;
@@ -456,6 +471,27 @@
       scenes = await api('/scenes');
       renderScenes();
       scStatus('Added two examples: edit them to suit you');
+    } catch (e) { scStatus(e.message, true); }
+  }
+  // Scenes built around moods. The morning one comes with its schedule switched off: turning it on is the user's call.
+  async function addMoodExamples() {
+    const music = musicTarget() || speakerList()[0]?.serial;
+    const isShow = (serial) => speakerList().some((d) => d.serial === serial && d.family === 'KNIGHT');
+    const show = isShow(music) ? music : speakerList().find((d) => d.family === 'KNIGHT')?.serial; // the screen in the same room first
+    const has = (id) => moodList.some((m) => m.id === id);
+    const examples = [
+      has('morning') && { name: 'Morning energizer', steps: [{ type: 'mood', device: music, id: 'morning' }],
+        schedule: { enabled: false, time: '07:00', days: [1, 2, 3, 4, 5] } },
+      has('deepwork') && { name: 'Focus hour', steps: [{ type: 'dnd', device: music, on: true }, { type: 'mood', device: music, id: 'deepwork', minutes: 60 }] },
+      has('sleep') && { name: 'Wind down', steps: [{ type: 'mood', device: music, id: 'sleep' }, { type: 'dnd', device: 'all', on: true },
+        ...(show ? [{ type: 'screen', device: show, on: false }] : [])] },
+    ].filter(Boolean);
+    if (!examples.length) return scStatus('The example moods were deleted: add a mood step yourself', true);
+    try {
+      for (const scene of examples) await api('/scenes', { scene });
+      scenes = await api('/scenes');
+      renderScenes();
+      scStatus(`Added ${examples.map((x) => `“${x.name}”`).join(', ')}. The morning one's schedule is off: turn it on in Edit.`);
     } catch (e) { scStatus(e.message, true); }
   }
   $('scenesTab').addEventListener('click', async (e) => {

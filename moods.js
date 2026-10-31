@@ -37,7 +37,7 @@ const BUILT_IN = [
       hindi: ['hindi lofi songs', 'bollywood lofi', 'hindi lofi study mix', 'soft hindi instrumental', 'arijit singh lofi', 'bollywood flute instrumental|1'],
       english: ['acoustic study songs', 'soft acoustic covers', 'chill indie for studying', 'coffee shop acoustic', 'soft pop for studying', 'mellow acoustic songs'],
       punjabi: ['punjabi lofi songs', 'punjabi lofi chill', 'slowed punjabi lofi', 'soft punjabi songs', 'punjabi acoustic songs', 'diljit dosanjh lofi'],
-      sufiGhazal: ['sufi instrumental', 'ghazal instrumental', 'sufi lofi', 'soft ghazals', 'jagjit singh ghazals|1', 'sitar instrumental'],
+      sufiGhazal: ['sufi ney flute', 'sarangi', 'sufi lofi', 'soft ghazals', 'jagjit singh ghazals|1', 'sitar'],
     }),
   m('deepwork', 'Deep Work', 'laptop', 'focus', 3, 'instrumental',
     { desc: 'Long stretches of concentration and coding', vol: 3, sleep: null, tod: ['morning', 'afternoon', 'night'], days: 'weekday', accent: ['#22d3ee', '#0f766e'], freq: 'beta' }, {
@@ -45,7 +45,7 @@ const BUILT_IN = [
       hindi: ['bollywood instrumental', 'hindi lofi beats', 'bollywood lofi chill', 'hindi chill mix', 'a r rahman instrumental', 'hindi indie chill'],
       english: ['chill electronic', 'downtempo electronic', 'indie electronic chill', 'focus pop', 'chill house|4', 'electronic chill mix'],
       punjabi: ['punjabi lofi', 'punjabi chill beats', 'punjabi lofi mix', 'slowed punjabi songs', 'punjabi instrumental', 'punjabi chill'],
-      sufiGhazal: ['sufi lofi', 'sufi instrumental', 'qawwali instrumental', 'sarangi instrumental', 'santoor instrumental', 'sufi chill'],
+      sufiGhazal: ['sufi lofi', 'sufi ney flute', 'sultan khan sarangi', 'sarangi instrumental', 'santoor', 'sufi chill'],
     }),
   m('reading', 'Reading', 'book-open', 'focus', 1, 'instrumental',
     { desc: 'Quiet, warm and out of the way', vol: 2, sleep: 60, tod: ['evening', 'night', 'afternoon'], accent: ['#f5c26b', '#8b5e34'], freq: 'hz432' }, {
@@ -209,7 +209,7 @@ const BUILT_IN = [
     }),
   m('sufi', 'Sufi & Ghazal evening', 'candle', 'emotion', 2, 'any',
     { desc: 'Qawwali, ghazal and kalam', vol: 3, tod: ['evening', 'night'], accent: ['#f59e0b', '#7c3aed'], freq: null }, {
-      instrumental: ['sufi instrumental', 'ghazal instrumental', 'sarangi', 'harmonium instrumental', 'sufi ney flute', 'qawwali instrumental'],
+      instrumental: ['sultan khan sarangi', 'sarangi instrumental', 'sarangi', 'santoor', 'sufi ney flute', 'shehnai'],
       hindi: ['hindi ghazals', 'hindi sufi songs', 'bollywood sufi songs', 'jagjit singh hindi ghazals', 'pankaj udhas', 'talat aziz ghazals'],
       english: ['sufi music', 'world music sufi', 'sufi fusion', 'sufi chill', 'coke studio', 'sufi soul'],
       punjabi: ['punjabi sufi songs', 'wadali brothers', 'punjabi sufi kalam', 'bulleh shah kalam', 'satinder sartaaj', 'punjabi qawwali'],
@@ -221,7 +221,7 @@ const BUILT_IN = [
       hindi: ['bollywood instrumental', 'hindi songs instrumental', 'old hindi songs instrumental', 'bollywood sitar instrumental', 'bollywood santoor', 'hindi film instrumental'],
       english: ['bollywood orchestral', 'indian cinematic instrumental', 'bollywood strings', 'indian fusion instrumental', 'bollywood piano', 'bollywood jazz instrumental'],
       punjabi: ['punjabi instrumental', 'punjabi flute instrumental', 'punjabi dhol instrumental|4', 'punjabi guitar instrumental', 'punjabi tumbi', 'punjabi folk instrumental'],
-      sufiGhazal: ['ghazal instrumental', 'sufi instrumental', 'sarangi instrumental', 'qawwali instrumental', 'harmonium ghazal instrumental', 'sufi flute'],
+      sufiGhazal: ['jagjit singh instrumental', 'sufi ney flute', 'sarangi instrumental', 'sultan khan sarangi', 'santoor', 'sitar'],
     }),
 ];
 
