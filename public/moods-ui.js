@@ -118,12 +118,13 @@
   }
 
   // ---------- live ----------
-  // The play sheet waiting on /moods/play. The SSE 'start' can arrive long before the reply (an Amazon rate-limit
-  // retry holds the request ~45 s), so the sheet closes on whichever comes first.
+  // The play sheet waiting on /moods/play. The reply comes only after every step, and Amazon's "rate exceeded" retry
+  // can hold any of them ~45 s. 'phrase' is sent just before the play command and 'start' once it played, so the
+  // sheet closes on the first of those (or the reply); the server carries on either way.
   let pendingPlay = null;
   window.onMoodEvent = (d) => {
     S.now = d.active ? d : null;
-    if (d.event === 'start' && d.active && pendingPlay?.moodId === d.moodId && pendingPlay.serial === d.serial) { pendingPlay.close(); pendingPlay = null; }
+    if (['phrase', 'start'].includes(d.event) && d.active && pendingPlay?.moodId === d.moodId && pendingPlay.serial === d.serial) { pendingPlay.close(); pendingPlay = null; }
     if (d.event === 'start' && d.active) UI.toast(d.name, `Playing on ${d.device}`);
     if (d.event === 'stop' && d.error) UI.toast(`${d.name || 'Mood'} stopped`, d.error, true);
     renderNow(); ambience();
@@ -182,6 +183,13 @@
       const btn = body.querySelector('#mfPlay');
       btn.classList.add('busy'); btn.disabled = true;
       pendingPlay = { moodId: m.id, serial: req.device, close: () => sh.close() };
+      const slow = setTimeout(() => {
+        const p = document.createElement('p');
+        p.className = 'muted small mf-slow'; p.setAttribute('role', 'status');
+        p.textContent = 'Alexa is taking a while (when Amazon is busy it retries within a minute). You can close this: it keeps going.';
+        body.querySelector('.sheet-foot').before(p);
+        p.scrollIntoView({ block: 'nearest', behavior: UI.reduced() ? 'auto' : 'smooth' });
+      }, 4000);
       try {
         const r = await api('/moods/play', req);
         if (r.superseded) { sh.close(); return; }
@@ -190,7 +198,7 @@
         if ($('mDevice') && [...$('mDevice').options].some((x) => x.value === req.device)) $('mDevice').value = req.device; // the music card follows
         setTimeout(refreshNow, 4000);
       } catch (err) { UI.toast(`Couldn't start ${m.name}`, err.message, true); btn.classList.remove('busy'); btn.disabled = false; }
-      finally { if (pendingPlay?.moodId === m.id) pendingPlay = null; }
+      finally { clearTimeout(slow); body.querySelector('.mf-slow')?.remove(); if (pendingPlay?.moodId === m.id) pendingPlay = null; }
     };
   }
 
