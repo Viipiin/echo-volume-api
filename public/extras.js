@@ -70,8 +70,8 @@
       let b = c.querySelector('.badges');
       if (!b) { b = document.createElement('div'); b.className = 'badges'; c.querySelector('.top').after(b); }
       const next = alerts.filter((a) => a.device === serial && a.type === 'timer' && a.status === 'ON' && a.at).sort((x, y) => x.at - y.at)[0];
-      b.innerHTML = (dnd[serial] ? '<span class="badge">🌙 Do Not Disturb</span>' : '')
-        + (next ? `<span class="badge timer" data-at="${next.at}">⏱ ${esc(next.label || 'Timer')} <span>${fmtLeft(next.at - Date.now())}</span></span>` : '');
+      b.innerHTML = (dnd[serial] ? `<span class="badge">${UI.icon('moon', 'sm')}Do Not Disturb</span>` : '')
+        + (next ? `<span class="badge timer" data-at="${next.at}">${UI.icon('timer', 'sm')}${esc(next.label || 'Timer')} <span>${fmtLeft(next.at - Date.now())}</span></span>` : '');
       b.hidden = !b.innerHTML;
     });
   }
@@ -203,7 +203,7 @@
   function renderAlerts() {
     const row = (a, main, sub, actions) => `<div class="arow" data-id="${esc(a.id)}">
       <div class="amain">${main}</div><div class="asub">${sub}</div><div class="aact">${actions}</div></div>`;
-    const del = '<button data-act="delete" title="Delete" aria-label="Delete">✕</button>';
+    const del = `<button data-act="delete" title="Delete" aria-label="Delete">${UI.icon('close', 'sm')}</button>`;
     const tm = alerts.filter((a) => a.type === 'timer' && a.status !== 'OFF');
     $('alTimers').innerHTML = tm.length ? tm.map((a) => row(a,
       `<b class="countdown" ${a.at ? `data-at="${a.at}"` : ''}>${a.at ? fmtLeft(a.at - Date.now()) : 'Paused'}</b> ${esc(a.label || 'Timer')}`,
@@ -256,7 +256,7 @@
       const active = l.items.filter((i) => !i.completed), done = l.items.filter((i) => i.completed);
       const item = (i) => `<li data-item="${esc(i.id)}" data-version="${esc(i.version)}">
         <label><input type="checkbox" ${i.completed ? 'checked' : ''} aria-label="Done" /><span>${esc(i.value)}</span></label>
-        <button data-act="delete" title="Delete" aria-label="Delete ${esc(i.value)}">✕</button></li>`;
+        <button data-act="delete" title="Delete" aria-label="Delete ${esc(i.value)}">${UI.icon('close', 'sm')}</button></li>`;
       return `<div class="card xcard" data-list="${esc(l.id)}">
         <div class="top"><span class="name">${esc(l.name)}</span><span class="kind">${active.length} to do</span></div>
         <form class="xform addform"><input maxlength="200" placeholder="Add to ${esc(l.name)}…" aria-label="New item" /><button class="go" type="submit">Add</button></form>
@@ -337,7 +337,7 @@
   }
   const stepRow = (s) => `<div class="step" data-type="${s.type}"><b>${esc(STEPS[s.type][0])}</b>
     <span class="fields">${STEPS[s.type][1].map((f) => field(f, s)).join('')}</span>
-    <span class="sbtn"><button type="button" data-mv="-1" aria-label="Move up">↑</button><button type="button" data-mv="1" aria-label="Move down">↓</button><button type="button" data-rm aria-label="Remove step">✕</button></span></div>`;
+    <span class="sbtn"><button type="button" data-mv="-1" aria-label="Move up">${UI.icon('arrow-up', 'sm')}</button><button type="button" data-mv="1" aria-label="Move down">${UI.icon('arrow-down', 'sm')}</button><button type="button" data-rm aria-label="Remove step">${UI.icon('close', 'sm')}</button></span></div>`;
   function readStep(row) {
     const s = { type: row.dataset.type };
     row.querySelectorAll('[data-f]').forEach((f) => {
@@ -388,7 +388,7 @@
       ${scenes.map((sc) => `<div class="card xcard scene" data-id="${esc(sc.id)}">
         <div class="top"><span class="name">${esc(sc.name)}</span><span class="kind">${esc(scheduleText(sc))}</span></div>
         <p class="steps">${sc.steps.map((s) => esc(stepText(s))).join(' <span class="arrow">→</span> ')}</p>
-        <div class="sbtns"><button class="go" data-sc="run">▶ Run</button><button data-sc="edit">Edit</button><button data-sc="delete">Delete</button>
+        <div class="sbtns"><button class="go" data-sc="run">${UI.icon('play', 'sm')}Run</button><button data-sc="edit">Edit</button><button data-sc="delete">Delete</button>
           <span class="kind progress" data-progress="${esc(sc.id)}"></span></div>
       </div>`).join('')}`;
     $('scNew').onclick = () => editScene({ name: '', steps: [{ type: 'volume', device: speakerList()[0]?.serial, level: 4 }], schedule: null });
@@ -472,7 +472,7 @@
   });
   function sceneProgress(d) {
     const p = document.querySelector(`[data-progress="${CSS.escape(d.id)}"]`);
-    const text = d.status === 'running' ? `Running ${d.step}/${d.total}…` : d.status === 'done' ? 'Done ✓' : `Finished with problems: ${d.errors.join('; ')}`;
+    const text = d.status === 'running' ? `Running ${d.step}/${d.total}…` : d.status === 'done' ? 'Done' : `Finished with problems: ${d.errors.join('; ')}`;
     if (p) { p.textContent = text; p.classList.toggle('err', d.status === 'error'); }
     if (d.status === 'done' || d.status === 'error') {
       if (tab !== 'scenes') toast(`Scene “${d.name}”`, d.status === 'done' ? 'Done' : d.errors.join('; '), d.status === 'error');
@@ -592,7 +592,7 @@
         <div class="sbtns"><span class="kind">Do Not Disturb</span><button data-dndall="true">On for all</button><button data-dndall="false">Off for all</button></div></div>
       <div class="grid">${echos.map((d) => `<div class="card xcard echoset" data-serial="${esc(d.serial)}">
         <div class="top"><span class="name">${esc(d.name)}</span><span class="kind">${esc(KIND[d.family] || d.family)}</span></div>
-        <label class="toggle setrow"><span>🌙 Do Not Disturb</span><span class="switch"><input type="checkbox" data-dnd aria-label="Do Not Disturb" /><span></span></span></label>
+        <label class="toggle setrow"><span>${UI.icon('moon', 'sm')} Do Not Disturb</span><span class="switch"><input type="checkbox" data-dnd aria-label="Do Not Disturb" /><span></span></span></label>
         <div class="eq">${['bass', 'mid', 'treble'].map((k) => `<label><span>${k === 'mid' ? 'Mid' : k[0].toUpperCase() + k.slice(1)}</span>
           <input type="range" min="-6" max="6" step="1" value="0" data-eq="${k}" aria-label="${k}" /><b data-eqv="${k}">0</b></label>`).join('')}
           <button data-eqreset>Reset equalizer</button></div>
@@ -729,7 +729,7 @@
       <p class="kind">Said with the year: “Asha is celebrating 34th birthday today”; without it: “It's Asha's birthday today”.
         Only while Echo Volume is running: if the PC is off at that time, it's announced when Echo Volume starts, until 10 pm.</p>
       <form class="xform" id="ceForm">
-        <span class="seg" id="ceType">${[['birthday', '🎂 Birthday'], ['anniversary', '💐 Anniversary']].map(([v, t]) => `<button type="button" data-t="${v}" class="${e.type === v ? 'cur' : ''}">${t}</button>`).join('')}</span>
+        <span class="seg" id="ceType">${[['birthday', `${UI.icon('cake', 'sm')}Birthday`], ['anniversary', `${UI.icon('flower', 'sm')}Anniversary`]].map(([v, t]) => `<button type="button" data-t="${v}" class="${e.type === v ? 'cur' : ''}">${t}</button>`).join('')}</span>
         <input id="ceName" maxlength="60" placeholder="${e.type === 'anniversary' ? 'Who, e.g. Asha and Rohan' : 'Name, e.g. Asha'}" value="${esc(e.name)}" aria-label="Name" />
         <select id="ceDay" aria-label="Day">${opts([['', 'Day'], ...Array.from({ length: 31 }, (_, i) => [i + 1, i + 1])], e.day)}</select>
         <select id="ceMonth" aria-label="Month">${opts([['', 'Month'], ...MONTHS.map((m, i) => [i + 1, m])], e.month)}</select>
@@ -738,9 +738,9 @@
       </form>
       <div class="status" id="ceStatus"></div>
       <div class="alist celist">${celeb.items.length ? celeb.items.map((c) => `<div class="arow" data-id="${esc(c.id)}">
-        <div class="amain">${c.type === 'anniversary' ? '💐' : '🎂'} <b>${esc(c.name)}</b> · ${esc(celebDate(c))}</div>
+        <div class="amain">${UI.icon(c.type === 'anniversary' ? 'flower' : 'cake', 'sm')} <b>${esc(c.name)}</b> · ${esc(celebDate(c))}</div>
         <div class="asub">${esc(celebWhen(c))} · “${esc(c.says)}”</div>
-        <div class="aact"><button data-ce="test" title="Say it now on the chosen Echo">▶ Preview</button><button data-ce="edit">Edit</button><button data-ce="delete" title="Delete" aria-label="Delete">✕</button></div>
+        <div class="aact"><button data-ce="test" title="Say it now on the chosen Echo">${UI.icon('play', 'sm')}Preview</button><button data-ce="edit">Edit</button><button data-ce="delete" title="Delete" aria-label="Delete">${UI.icon('close', 'sm')}</button></div>
       </div>`).join('') : '<div class="empty small">None yet. Add a birthday or anniversary above.</div>'}</div>`;
     let type = e.type;
     $('ceType').onclick = (ev) => {

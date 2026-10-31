@@ -163,6 +163,7 @@ async function load() {
     const h = await api('/health');
     if (!h.ready) throw new Error('Not logged in');
     devices = await api('/devices');
+    document.dispatchEvent(new Event('devices')); // screens drawn before the list arrived (Moods) fill their Echo pickers
     setConn('ok', 'Connected');
     render();
     if (!stOn) updateTv(); // the Alexa TV panel is hidden when SmartThings is connected
@@ -412,17 +413,17 @@ function renderTiles(items, label, empty = 'No results.') {
   $('mTiles').innerHTML = items.length ? items.map((it, i) => `
     <div class="tw${i === playingAt ? ' now' : ''}">
       <button class="tile" data-i="${i}" title="Play ${esc(it.title)}">
-        <div class="cover"><span>${esc((it.title[0] || '♪').toUpperCase())}</span>${it.artwork ? `<img src="${esc(it.artwork)}" alt="" loading="lazy" />` : ''}</div>
+        <div class="cover"><span>${it.title[0] ? esc(it.title[0].toUpperCase()) : UI.icon('music')}</span>${it.artwork ? `<img src="${esc(it.artwork)}" alt="" loading="lazy" />` : ''}</div>
         <b>${esc(it.title)}</b><span>${esc(it.subtitle || '')}</span>
       </button>
-      <button class="fav" data-i="${i}" aria-label="Favourite ${esc(it.title)}">☆</button>
-      ${plOpen ? `<button class="pladd" data-i="${i}" title="Remove from “${esc(plOpen.name)}”" aria-label="Remove ${esc(it.title)} from the playlist">✕</button>`
-        : it.type === 'song' ? `<button class="pladd" data-i="${i}" title="Add to a playlist" aria-label="Add ${esc(it.title)} to a playlist">＋</button>` : ''}
+      <button class="fav" data-i="${i}" aria-label="Favourite ${esc(it.title)}">${UI.icon('star', 'sm')}</button>
+      ${plOpen ? `<button class="pladd" data-i="${i}" title="Remove from “${esc(plOpen.name)}”" aria-label="Remove ${esc(it.title)} from the playlist">${UI.icon('close', 'sm')}</button>`
+        : it.type === 'song' ? `<button class="pladd" data-i="${i}" title="Add to a playlist" aria-label="Add ${esc(it.title)} to a playlist">${UI.icon('plus', 'sm')}</button>` : ''}
     </div>`).join('') : `<div class="empty">${esc(empty)}</div>`;
   markFavs();
 }
 function markFavs() {
-  const mark = (b, on) => { b.classList.toggle('on', on); b.textContent = on ? '★' : '☆'; b.setAttribute('aria-pressed', on); };
+  const mark = (b, on) => { b.classList.toggle('on', on); b.innerHTML = UI.icon(on ? 'star-fill' : 'star', 'sm'); b.setAttribute('aria-pressed', on); };
   document.querySelectorAll('#mTiles .fav').forEach((b) => mark(b, favs.has(mItems[+b.dataset.i]?.query)));
   mark($('npFav'), !!npItem && favs.has(npItem.query));
 }
@@ -473,7 +474,7 @@ async function showList(v) {
     if (req !== mReq) return;
     if (v === 'fav') favs = new Set(items.map((x) => x.query));
     renderTiles(items, v === 'fav' ? `Favourites · ${items.length}` : 'Recently played',
-      v === 'fav' ? 'No favourites yet. Tap ☆ on any song, album or artist.' : 'Nothing played from here yet.');
+      v === 'fav' ? 'No favourites yet. Tap the star on any song, album or artist.' : 'Nothing played from here yet.');
   } catch (e) { if (req === mReq) mStatus(e.message, true); }
 }
 $('mView').onclick = (e) => { const b = e.target.closest('[data-view]'); if (b) { $('mQuery').value = ''; showList(b.dataset.view); } };
@@ -578,10 +579,10 @@ async function showPlaylists() {
     $('mTiles').innerHTML = lists.length ? lists.map((l) => `
       <div class="tw${playing?.list === l.id ? ' now' : ''}">
         <button class="tile" data-pl="${esc(l.id)}" title="Open ${esc(l.name)}">
-          <div class="cover"><span>${esc((l.name[0] || '♪').toUpperCase())}</span>${l.artwork ? `<img src="${esc(l.artwork)}" alt="" loading="lazy" />` : ''}</div>
+          <div class="cover"><span>${l.name[0] ? esc(l.name[0].toUpperCase()) : UI.icon('music')}</span>${l.artwork ? `<img src="${esc(l.artwork)}" alt="" loading="lazy" />` : ''}</div>
           <b>${esc(l.name)}</b><span>${songs(l.count)}${playing?.list === l.id ? ` · playing on ${esc(playing.device || '')}` : ''}</span>
         </button>
-      </div>`).join('') : '<div class="empty">No playlists yet. Create one above, then tap ＋ on any song.</div>';
+      </div>`).join('') : '<div class="empty">No playlists yet. Create one above, then tap + on any song.</div>';
   } catch (e) { if (req === mReq) mStatus(e.message, true); }
 }
 async function createPlaylist(name) {
@@ -597,7 +598,7 @@ async function openPlaylist(id) {
     setView('lists');
     plOpen = l; plPlaying = l.playing;
     drawPlaylistHead();
-    renderTiles(l.items, `${l.name} · ${songs(l.items.length)}`, 'No songs yet. Tap ＋ on any song (or on the song playing now) to add it here.');
+    renderTiles(l.items, `${l.name} · ${songs(l.items.length)}`, 'No songs yet. Tap + on any song (or on the song playing now) to add it here.');
   } catch (e) { mStatus(e.message, true); showList('lists'); }
 }
 function drawPlaylistHead() {
@@ -606,15 +607,15 @@ function drawPlaylistHead() {
   $('plPanel').innerHTML = `
     <button type="button" class="back" data-pl="back">← All playlists</button>
     <div class="podbtns plbtns">
-      <button type="button" class="go" data-pl="play" ${l.items.length ? '' : 'disabled'}>▶ Play all</button>
-      ${on ? '<button type="button" data-pl="stop">■ Stop after this song</button>' : ''}
+      <button type="button" class="go" data-pl="play" ${l.items.length ? '' : 'disabled'}>${UI.icon('play', 'sm')}Play all</button>
+      ${on ? `<button type="button" data-pl="stop">${UI.icon('stop', 'sm')}Stop after this song</button>` : ''}
       <button type="button" data-pl="rename">Rename</button>
       <button type="button" data-pl="delete">Delete</button>
       <label class="kind" title="Fade the song out at its end and the next one in (one Echo plays one song at a time, so they don't overlap)">Crossfade
         <select id="plFade" aria-label="Crossfade between songs">${[[0, 'Off'], [5, '5 s'], [10, '10 s'], [15, '15 s']]
           .map(([v, t]) => `<option value="${v}"${v === (l.crossfade || 0) ? ' selected' : ''}>${t}</option>`).join('')}</select></label>
     </div>
-    <p class="kind">${on ? `Playing song ${plPlaying.index + 1} of ${l.items.length} on ${esc(plPlaying.device || '')}. ⏭ / ⏮ move through the playlist.`
+    <p class="kind">${on ? `Playing song ${plPlaying.index + 1} of ${l.items.length} on ${esc(plPlaying.device || '')}. Next and Previous move through the playlist.`
       : 'Songs play in order. Tap a song to start from there.'}</p>`;
 }
 async function playPlaylist(l, index, tile) {
@@ -634,7 +635,7 @@ async function removeFromPlaylist(it) {
     const l = await api(`/music/playlists/${encodeURIComponent(plOpen.id)}/remove`, { query: it.query });
     plOpen = l; plPlaying = l.playing;
     drawPlaylistHead();
-    renderTiles(l.items, `${l.name} · ${songs(l.items.length)}`, 'No songs yet. Tap ＋ on any song to add it here.');
+    renderTiles(l.items, `${l.name} · ${songs(l.items.length)}`, 'No songs yet. Tap + on any song to add it here.');
     mStatus(`Removed “${it.title}”`);
   } catch (e) { mStatus(e.message, true); }
 }
@@ -689,7 +690,7 @@ $('plPanel').onsubmit = async (e) => {
   } catch (err) { mStatus(err.message, true); }
 };
 
-// ＋ on a song: pick a playlist (or make a new one) to add it to
+// + on a song: pick a playlist (or make a new one) to add it to
 let plAdd = null;
 async function openAddMenu(anchor, it) {
   plAdd = it;
@@ -729,7 +730,7 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('plMe
 $('npPl').onclick = () => npItem && openAddMenu($('npPl'), npItem);
 
 // ---------- Podcasts: a show's page with its episodes ----------
-// Alexa plays a show or its latest episode, not older episodes by name; ⏮ goes back one episode.
+// Alexa plays a show or its latest episode, not older episodes by name; Previous goes back one episode.
 let podItem = null;
 function closePodcast() { podItem = null; $('podPanel').hidden = true; $('mTiles').hidden = false; plOpen = null; $('plPanel').hidden = true; }
 async function openPodcast(it) {
@@ -748,11 +749,11 @@ async function openPodcast(it) {
         ${show.artwork ? `<img src="${esc(show.artwork)}" alt="" />` : ''}
         <div><b>${esc(show.title)}</b><span>${esc(podcast.subtitle || it.subtitle || '')}</span>
           <div class="podbtns">
-            <button type="button" class="go" data-pod="latest">▶ Latest episode</button>
-            <button type="button" data-pod="show" title="Alexa usually continues where you left off">▶ Play show</button>
-            <button type="button" data-pod="fav" class="podfav">${favs.has(show.query) ? '★ Favourite' : '☆ Favourite'}</button>
+            <button type="button" class="go" data-pod="latest">${UI.icon('play', 'sm')}Latest episode</button>
+            <button type="button" data-pod="show" title="Alexa usually continues where you left off">${UI.icon('play', 'sm')}Play show</button>
+            <button type="button" data-pod="fav" class="podfav">${UI.icon(favs.has(show.query) ? 'star-fill' : 'star', 'sm')}Favourite</button>
           </div></div></div>
-      <p class="kind">Alexa plays the show or its latest episode. For an older episode, start the latest and use ⏮ to go back.</p>
+      <p class="kind">Alexa plays the show or its latest episode. For an older episode, start the latest and use Previous to go back.</p>
       <ol class="episodes">${episodes.map((ep, i) => `<li><b>${esc(ep.title)}</b>
         <span>${i === 0 ? 'Latest · ' : ''}${esc(date(ep.released))}${ep.minutes ? ` · ${ep.minutes} min` : ''}</span>
         ${ep.summary ? `<small>${esc(ep.summary)}</small>` : ''}</li>`).join('') || '<li class="empty small">No episodes listed.</li>'}</ol>`;
@@ -771,14 +772,14 @@ $('podPanel').onclick = async (e) => {
   const b = e.target.closest('[data-pod]'); if (!b) return;
   if (b.dataset.pod === 'back') return closePodcast();
   const show = JSON.parse($('podPanel').dataset.show || 'null') || podItem;
-  if (b.dataset.pod === 'fav') { await toggleFav(show); b.textContent = favs.has(show.query) ? '★ Favourite' : '☆ Favourite'; return; }
+  if (b.dataset.pod === 'fav') { await toggleFav(show); b.innerHTML = `${UI.icon(favs.has(show.query) ? 'star-fill' : 'star', 'sm')}Favourite`; return; }
   b.disabled = true;
   await playPodcast(show, b.dataset.pod === 'latest');
   b.disabled = false;
 };
 
 // ---------- Surprise me: a fresh mix of popular Hindi songs, or of podcasts to learn from ----------
-// The server picks it, plays one after another and keeps adding more; ⏭ skips to the next pick.
+// The server picks it, plays one after another and keeps adding more; Next skips to the next pick.
 // Tapping the playing one again starts a new mix.
 let surpriseOn = null;
 function markSurprise(kind) {
@@ -787,7 +788,7 @@ function markSurprise(kind) {
     const on = b.dataset.surprise === surpriseOn, small = b.querySelector('small');
     b.classList.toggle('on', on);
     b.setAttribute('aria-pressed', on);
-    if (!b.classList.contains('busy')) small.textContent = on ? 'Playing · ⏭ next · tap for a new mix' : small.dataset.idle;
+    if (!b.classList.contains('busy')) small.textContent = on ? 'Playing · Next skips · tap for a new mix' : small.dataset.idle;
   });
 }
 $('surprise').onclick = async (e) => {
@@ -828,7 +829,7 @@ function showNow(n) {
   $('npSub').textContent = idle ? '' : [n.artist, n.provider].filter(Boolean).join(' · ');
   $('npArt').hidden = !n.artwork; $('npPh').hidden = !!n.artwork;
   if (n.artwork && $('npArt').src !== n.artwork) $('npArt').src = n.artwork;
-  $('npToggle').textContent = n.state === 'PLAYING' ? '⏸' : '▶';
+  $('npToggle').innerHTML = UI.icon(n.state === 'PLAYING' ? 'pause' : 'play');
   np = { pos: n.position, len: n.length, at: Date.now(), playing: n.state === 'PLAYING' };
   sleepAt = n.sleepAt;
   drawProgress();
@@ -887,7 +888,7 @@ document.querySelectorAll('[data-mcmd]').forEach((b) => b.onclick = async () => 
     catch (e) { b.classList.toggle('on', !on); mStatus(e.message, true); }
     return;
   }
-  if (cmd === 'toggle') { cmd = npState === 'PLAYING' ? 'pause' : 'play'; $('npToggle').textContent = cmd === 'pause' ? '▶' : '⏸'; npState = cmd === 'pause' ? 'PAUSED' : 'PLAYING'; }
+  if (cmd === 'toggle') { cmd = npState === 'PLAYING' ? 'pause' : 'play'; $('npToggle').innerHTML = UI.icon(cmd === 'pause' ? 'play' : 'pause'); npState = cmd === 'pause' ? 'PAUSED' : 'PLAYING'; }
   try { await api('/music/' + cmd, { device: musicTarget() }); setTimeout(refreshNow, 1500); }
   catch (e) { mStatus(e.message, true); refreshNow(); }
 });
@@ -900,10 +901,10 @@ document.querySelectorAll('[data-seek]').forEach((b) => b.onclick = () => {
   const badge = $('seekBadge');
   if (!seekTotal) { badge.hidden = true; return; }
   badge.hidden = false;
-  badge.textContent = `${seekTotal > 0 ? '⏩ +' : '⏪ −'}${seekText(seekTotal)}`;
+  badge.textContent = `${seekTotal > 0 ? '+' : '−'}${seekText(seekTotal)}`;
   seekTimer = setTimeout(async () => {
     const s = seekTotal; seekTotal = 0;
-    badge.textContent = `${s > 0 ? '⏩ Skipping' : '⏪ Going back'} ${seekText(s)}…`;
+    badge.textContent = `${s > 0 ? 'Skipping' : 'Going back'} ${seekText(s)}…`;
     try { await api('/music/seek', { device: musicTarget(), seconds: s }); mStatus(s > 0 ? `Skipped forward ${seekText(s)}` : `Went back ${seekText(s)}`); setTimeout(refreshNow, 1500); }
     catch (e) { mStatus(e.message, true); }
     finally { if (!seekTotal) setTimeout(() => { if (!seekTotal) badge.hidden = true; }, 1200); }

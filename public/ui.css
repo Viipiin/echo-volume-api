@@ -127,19 +127,19 @@ select option, select optgroup { background: var(--surface-solid); color: var(--
 .search .input { flex: 1; padding-left: 38px; border-radius: var(--r-pill); }
 
 /* Range slider: a filled track (--val set by shell.js, 0-100%) and a glowing thumb while dragged */
-input[type=range].slider { -webkit-appearance: none; appearance: none; width: 100%; height: 28px; background: transparent; cursor: pointer; --val: 50%; }
-input[type=range].slider::-webkit-slider-runnable-track { height: 6px; border-radius: 3px;
+input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 28px; background: transparent; cursor: pointer; --val: 50%; }
+input[type=range]::-webkit-slider-runnable-track { height: 6px; border-radius: 3px;
   background: linear-gradient(90deg, var(--accent-2), var(--accent)) 0 / var(--val) 100% no-repeat, var(--line); }
-input[type=range].slider::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; margin-top: -6px; border-radius: 50%;
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; margin-top: -6px; border-radius: 50%;
   background: #fff; border: 0; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35), 0 0 0 0 var(--accent-tint); transition: box-shadow var(--d-fast), transform var(--d-fast) var(--ease); }
-input[type=range].slider:hover::-webkit-slider-thumb { box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35), 0 0 0 6px var(--accent-tint); }
-input[type=range].slider:active::-webkit-slider-thumb { transform: scale(1.12); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35), 0 0 0 8px var(--accent-tint), 0 0 16px var(--accent); }
-input[type=range].slider:focus-visible { outline: none; }
-input[type=range].slider:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px var(--accent-2); }
-input[type=range].slider::-moz-range-track { height: 6px; border-radius: 3px; background: var(--line); }
-input[type=range].slider::-moz-range-progress { height: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--accent-2), var(--accent)); }
-input[type=range].slider::-moz-range-thumb { width: 18px; height: 18px; border: 0; border-radius: 50%; background: #fff; }
-input[type=range].slider:disabled { opacity: 0.45; cursor: default; }
+input[type=range]:hover::-webkit-slider-thumb { box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35), 0 0 0 6px var(--accent-tint); }
+input[type=range]:active::-webkit-slider-thumb { transform: scale(1.12); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35), 0 0 0 8px var(--accent-tint), 0 0 16px var(--accent); }
+input[type=range]:focus-visible { outline: none; }
+input[type=range]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px var(--accent-2); }
+input[type=range]::-moz-range-track { height: 6px; border-radius: 3px; background: var(--line); }
+input[type=range]::-moz-range-progress { height: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--accent-2), var(--accent)); }
+input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border: 0; border-radius: 50%; background: #fff; }
+input[type=range]:disabled { opacity: 0.45; cursor: default; }
 
 /* Switch (existing markup: <label class="switch"><input type="checkbox"><span></span></label>) */
 .switch { position: relative; display: inline-block; width: 42px; height: 24px; flex: none; }
@@ -295,7 +295,9 @@ input[type=range].slider:disabled { opacity: 0.45; cursor: default; }
 .mood-tile:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--a) 50%, transparent); box-shadow: 0 14px 30px -16px var(--a); }
 .mood-tile:hover::before { opacity: 0.32; }
 .mood-tile.on { border-color: var(--a); box-shadow: 0 0 0 1px var(--a), 0 14px 34px -14px var(--a); }
-.mood-tile .em { font-size: 26px; line-height: 1; }
+.mood-tile .em { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px;
+  background: color-mix(in srgb, var(--a) 20%, transparent); color: color-mix(in srgb, var(--a) 72%, var(--text)); }
+.mood-tile .em svg.i { width: 22px; height: 22px; }
 .mood-tile b { font: 600 15px var(--font-display); }
 .mood-tile small { color: var(--muted); font-size: var(--fs-sm); line-height: 1.35; }
 .mood-tile .meta { margin-top: auto; display: flex; align-items: center; gap: 8px; color: var(--muted); }

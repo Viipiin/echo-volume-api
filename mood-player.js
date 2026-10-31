@@ -102,7 +102,7 @@ module.exports = function moodPlayer(ctx) {
     const c = cur;
     if (!c || (serial && c.serial !== serial)) return null;
     return {
-      active: true, device: c.device, serial: c.serial, moodId: c.mood.id, name: c.mood.name, emoji: c.mood.emoji, accent: c.mood.accent,
+      active: true, device: c.device, serial: c.serial, moodId: c.mood.id, name: c.mood.name, icon: c.mood.icon, accent: c.mood.accent,
       phrase: c.item?.query || null, layer: c.item?.layer || 'mood', startedAt: c.startedAt, tracks: c.tracks,
       sleepAt: c.sleepAt && c.sleepAt > Date.now() ? c.sleepAt : null, opts: c.opts,
     };
@@ -226,7 +226,7 @@ module.exports = function moodPlayer(ctx) {
   // ---------- routes ----------
   const moodList = () => {
     const s = state();
-    return { groups: M.GROUPS, languages: M.LANGUAGES, moods: moods(), prefs: s.prefs, last: s.last, favorites: s.favorites };
+    return { groups: M.GROUPS, languages: M.LANGUAGES, icons: M.ICONS, moods: moods(), prefs: s.prefs, last: s.last, favorites: s.favorites };
   };
   router.get('/moods', (_req, res) => res.json(moodList()));
   router.get('/moods/suggest', (req, res) => {

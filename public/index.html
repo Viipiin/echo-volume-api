@@ -85,11 +85,11 @@
     <div class="tvvol">
       <span class="kind">Remote</span>
       <span class="dpad">
-        <button data-key="UP" class="up" aria-label="Up">▲</button>
-        <button data-key="LEFT" class="left" aria-label="Left">◀</button>
+        <button data-key="UP" class="up" aria-label="Up"><svg class="i" aria-hidden="true"><use href="/icons.svg#chevron-up"/></svg></button>
+        <button data-key="LEFT" class="left" aria-label="Left"><svg class="i" aria-hidden="true"><use href="/icons.svg#chevron-left"/></svg></button>
         <button data-key="OK" class="ok">OK</button>
-        <button data-key="RIGHT" class="right" aria-label="Right">▶</button>
-        <button data-key="DOWN" class="down" aria-label="Down">▼</button>
+        <button data-key="RIGHT" class="right" aria-label="Right"><svg class="i" aria-hidden="true"><use href="/icons.svg#chevron-right"/></svg></button>
+        <button data-key="DOWN" class="down" aria-label="Down"><svg class="i" aria-hidden="true"><use href="/icons.svg#chevron-down"/></svg></button>
       </span>
       <span class="keys">
         <button data-key="BACK">Back</button>
@@ -133,21 +133,21 @@
     <div class="np">
       <img id="npArt" alt="" hidden /><div class="ph" id="npPh"></div>
       <div class="meta"><b id="npTitle">Nothing playing</b><span id="npSub"></span>
-        <button class="npfav" id="npFav" hidden aria-label="Favourite this song">☆</button>
-        <button class="npfav nppl" id="npPl" hidden aria-label="Add this song to a playlist" title="Add to a playlist">＋</button>
+        <button class="npfav" id="npFav" hidden aria-label="Favourite this song"><svg class="i" aria-hidden="true"><use href="/icons.svg#star"/></svg></button>
+        <button class="npfav nppl" id="npPl" hidden aria-label="Add this song to a playlist" title="Add to a playlist"><svg class="i" aria-hidden="true"><use href="/icons.svg#plus"/></svg></button>
         <div class="prog" id="npProg" hidden><small id="npPos">0:00</small><div class="bar"><div id="npBar"></div></div><small id="npLen">0:00</small></div>
         <div id="seekBadge" class="seekbadge" role="status" hidden></div>
       </div>
       <div class="ctl">
         <button data-seek="-15" class="skip" aria-label="Back 15 seconds">−15</button>
         <button data-seek="-10" class="skip" aria-label="Back 10 seconds">−10</button>
-        <button data-mcmd="previous" aria-label="Previous">⏮</button>
-        <button data-mcmd="toggle" class="main" id="npToggle" aria-label="Play or pause">▶</button>
-        <button data-mcmd="next" aria-label="Next">⏭</button>
+        <button data-mcmd="previous" aria-label="Previous"><svg class="i" aria-hidden="true"><use href="/icons.svg#prev"/></svg></button>
+        <button data-mcmd="toggle" class="main" id="npToggle" aria-label="Play or pause"><svg class="i" aria-hidden="true"><use href="/icons.svg#play"/></svg></button>
+        <button data-mcmd="next" aria-label="Next"><svg class="i" aria-hidden="true"><use href="/icons.svg#next"/></svg></button>
         <button data-seek="10" class="skip" aria-label="Forward 10 seconds">+10</button>
         <button data-seek="15" class="skip" aria-label="Forward 15 seconds">+15</button>
-        <button data-mcmd="shuffle" class="mode" hidden aria-label="Shuffle" title="Shuffle">🔀</button>
-        <button data-mcmd="repeat" class="mode" hidden aria-label="Repeat" title="Repeat">🔁</button>
+        <button data-mcmd="shuffle" class="mode" hidden aria-label="Shuffle" title="Shuffle"><svg class="i" aria-hidden="true"><use href="/icons.svg#shuffle"/></svg></button>
+        <button data-mcmd="repeat" class="mode" hidden aria-label="Repeat" title="Repeat"><svg class="i" aria-hidden="true"><use href="/icons.svg#repeat"/></svg></button>
       </div>
     </div>
     <div class="mvol">
@@ -159,12 +159,12 @@
     </div>
     <div class="surprise" id="surprise">
       <button type="button" class="sbtn song" data-surprise="song">
-        <span class="sico" aria-hidden="true">🎵</span>
+        <span class="sico" aria-hidden="true"><svg class="i" aria-hidden="true"><use href="/icons.svg#music"/></svg></span>
         <span class="stxt"><b>Surprise with a Song</b><small data-idle="Popular Hindi hits, non-stop">Popular Hindi hits, non-stop</small></span>
         <span class="sbars" aria-hidden="true"><i></i><i></i><i></i></span>
       </button>
       <button type="button" class="sbtn pod" data-surprise="podcast">
-        <span class="sico" aria-hidden="true">🎙️</span>
+        <span class="sico" aria-hidden="true"><svg class="i" aria-hidden="true"><use href="/icons.svg#mic"/></svg></span>
         <span class="stxt"><b>Surprise with a Podcast</b><small data-idle="Tech, AI &amp; history, back to back">Tech, AI &amp; history, back to back</small></span>
         <span class="sbars" aria-hidden="true"><i></i><i></i><i></i></span>
       </button>
@@ -189,7 +189,7 @@
     </form>
     <div class="mhead">
       <div class="mtitle"><div class="mlabel" id="mLabel">Top songs</div>
-        <button type="button" class="mrefresh" id="mRefresh" title="New songs" aria-label="Show new songs">↻</button></div>
+        <button type="button" class="mrefresh" id="mRefresh" title="New songs" aria-label="Show new songs"><svg class="i" aria-hidden="true"><use href="/icons.svg#refresh"/></svg></button></div>
       <span class="seg small" id="mView">
         <button type="button" data-view="top" class="cur">Top</button>
         <button type="button" data-view="recent">Recent</button>

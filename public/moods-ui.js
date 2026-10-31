@@ -32,7 +32,7 @@
     const on = S.now?.moodId === m.id;
     return `<div class="mood-cell" data-id="${esc(m.id)}">
       <button type="button" class="mood-tile${on ? ' on' : ''}" data-play="${esc(m.id)}" data-a="${esc(m.accent[0])}" data-b="${esc(m.accent[1])}" aria-label="${esc(m.name)}${on ? ', playing' : ''}">
-        <span class="em" aria-hidden="true">${esc(m.emoji)}</span><b>${esc(m.name)}</b>
+        <span class="em" aria-hidden="true">${icon(m.icon || 'music')}</span><b>${esc(m.name)}</b>
         <small>${esc(reason || m.description || '')}</small>
         <span class="meta">${dots(m.energy)}${m.frequencyLayer ? `<span class="badge neutral" title="Healing frequency">${icon('wave')}${esc(presetName(m.frequencyLayer))}</span>` : ''}
           ${on ? '<span class="eqbars" aria-hidden="true"><i></i><i></i><i></i></span>' : ''}</span>
@@ -85,9 +85,11 @@
       if (on) t.querySelector('.meta').insertAdjacentHTML('beforeend', '<span class="eqbars" aria-hidden="true"><i></i><i></i><i></i></span>');
     });
     if (!n) return;
+    const sel = $('mdDevice'); // "Play on" follows the Echo the mood is playing on
+    if (sel && [...sel.options].some((o) => o.value === n.serial)) sel.value = n.serial;
     box.dataset.a = n.accent[0]; box.dataset.b = n.accent[1];
     box.style.setProperty('--a', n.accent[0]); box.style.setProperty('--b', n.accent[1]);
-    box.innerHTML = `<span class="mn-em" aria-hidden="true">${esc(n.emoji)}</span>
+    box.innerHTML = `<span class="mn-em" aria-hidden="true">${icon(n.icon || 'music')}</span>
       <div class="mn-meta"><span class="label">Playing on ${esc(n.device)}</span><b>${esc(n.name)}</b>
         <span class="muted small">${n.layer === 'frequency' ? `${icon('wave', 'sm')} Healing frequency · ` : ''}“${esc(n.phrase || '')}”${n.tracks ? ` · track ${n.tracks}` : ''}</span>
         <span class="small mn-sleep" id="mnSleep"></span></div>
@@ -118,7 +120,7 @@
   // ---------- live ----------
   window.onMoodEvent = (d) => {
     S.now = d.active ? d : null;
-    if (d.event === 'start' && d.active) UI.toast(`${d.emoji} ${d.name}`, `Playing on ${d.device}`);
+    if (d.event === 'start' && d.active) UI.toast(d.name, `Playing on ${d.device}`);
     if (d.event === 'stop' && d.error) UI.toast(`${d.name || 'Mood'} stopped`, d.error, true);
     renderNow(); ambience();
   };
@@ -154,7 +156,7 @@
       <div class="mf-row"><span class="label">Sleep timer</span><div class="chips">${sleeps.map((v) => chip('sleep', v, v ? `${v} min` : 'Off', o.sleep)).join('')}</div></div>
       <div class="sheet-foot"><button type="button" class="btn" data-close>Cancel</button>
         <button type="submit" class="btn primary" id="mfPlay">${icon('play', 'sm')}Play ${esc(m.name)}</button></div>`;
-    const sh = UI.sheet(body, { title: `${m.emoji} ${m.name}` });
+    const sh = UI.sheet(body, { title: m.name });
     const pick = (attr, el) => { body.querySelectorAll(`[data-${attr}]`).forEach((b) => b.setAttribute('aria-pressed', b === el)); };
     body.addEventListener('click', (e) => {
       const c = e.target.closest('[data-dev], [data-lang], [data-sleep]');
@@ -189,13 +191,12 @@
   // ---------- edit sheet ----------
   function editSheet(m) {
     const d = S.data, isNew = !m;
-    m = m || { name: '', emoji: '🎵', group: 'relax', description: '', energy: 3, vocals: 'any', defaultVolume: 3, defaultSleepMinutes: null, accent: ['#2cc3f0', '#3b4bd8'], frequencyLayer: null, phrases: {}, timeOfDay: [], days: 'any' };
+    m = m || { name: '', icon: 'music', group: 'relax', description: '', energy: 3, vocals: 'any', defaultVolume: 3, defaultSleepMinutes: null, accent: ['#2cc3f0', '#3b4bd8'], frequencyLayer: null, phrases: {}, timeOfDay: [], days: 'any' };
     const body = document.createElement('form');
     body.className = 'mood-form';
     body.innerHTML = `
       <div class="mf-grid">
         <label class="field"><span>Name</span><input id="meName" maxlength="40" required value="${esc(m.name)}" /></label>
-        <label class="field mf-em"><span>Emoji</span><input id="meEmoji" maxlength="8" value="${esc(m.emoji)}" /></label>
         <label class="field"><span>Group</span><select id="meGroup">${d.groups.map((g) => `<option value="${g.id}" ${g.id === m.group ? 'selected' : ''}>${esc(g.name)}</option>`).join('')}</select></label>
         <label class="field"><span>Vocals</span><select id="meVoc">${[['instrumental', 'Instrumental'], ['light', 'Light vocals'], ['any', 'Any']].map(([v, t]) => `<option value="${v}" ${v === m.vocals ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
         <label class="field mf-wide"><span>Description</span><input id="meDesc" maxlength="120" value="${esc(m.description || '')}" /></label>
@@ -205,6 +206,8 @@
         <label class="field"><span>Healing frequency</span><select id="meLayer"><option value="">None</option>${S.presets.filter((p) => !p.headphonesOnly).map((p) => `<option value="${p.id}" ${p.id === m.frequencyLayer ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select></label>
         <label class="field"><span>Colour 1</span><input id="meA" type="color" value="${esc(m.accent[0])}" /></label>
         <label class="field"><span>Colour 2</span><input id="meB" type="color" value="${esc(m.accent[1])}" /></label>
+        <div class="field mf-wide"><span id="meIconL">Icon</span><div class="icon-pick" id="meIcon" role="radiogroup" aria-labelledby="meIconL">${d.icons.map((i) =>
+          `<button type="button" role="radio" data-icon="${esc(i)}" aria-checked="${i === (m.icon || 'music')}" aria-label="${esc(i.replace(/-/g, ' '))}" title="${esc(i.replace(/-/g, ' '))}">${icon(i)}</button>`).join('')}</div></div>
       </div>
       <p class="label mf-ph">Search phrases, one per line <span class="muted">(what Alexa searches Apple Music for; add “|4” for a livelier one)</span></p>
       <div class="mf-grid">${d.languages.map((l) => `<label class="field"><span>${esc(l.name)}</span><textarea class="input" data-lang="${l.id}" rows="4">${esc((m.phrases[l.id] || []).join('\n'))}</textarea></label>`).join('')}</div>
@@ -212,13 +215,14 @@
         <button type="button" class="btn" data-close>Cancel</button><button type="submit" class="btn primary">${isNew ? 'Add mood' : 'Save'}</button></div>`;
     const sh = UI.sheet(body, { title: isNew ? 'New mood' : `Edit ${m.name}`, wide: true });
     const q = (id) => body.querySelector('#' + id);
+    q('meIcon').onclick = (e) => { const b = e.target.closest('[data-icon]'); if (b) q('meIcon').querySelectorAll('[data-icon]').forEach((x) => x.setAttribute('aria-checked', x === b)); };
     if (q('meReset')) q('meReset').onclick = async () => { try { S.data = await api('/moods/reset', { id: m.id }); sh.close(); render(); } catch (err) { UI.toast('Reset', err.message, true); } };
     body.onsubmit = async (e) => {
       e.preventDefault();
       const phrases = {};
       body.querySelectorAll('textarea[data-lang]').forEach((t) => { phrases[t.dataset.lang] = t.value.split('\n').map((x) => x.trim()).filter(Boolean); });
       const mood = {
-        id: isNew ? undefined : m.id, name: q('meName').value, emoji: q('meEmoji').value, group: q('meGroup').value, vocals: q('meVoc').value,
+        id: isNew ? undefined : m.id, name: q('meName').value, icon: q('meIcon').querySelector('[aria-checked="true"]')?.dataset.icon, group: q('meGroup').value, vocals: q('meVoc').value,
         description: q('meDesc').value, energy: +q('meEnergy').value, defaultVolume: +q('meVol').value, defaultSleepMinutes: q('meSleep').value === '' ? null : +q('meSleep').value,
         frequencyLayer: q('meLayer').value || null, accent: [q('meA').value, q('meB').value], phrases, timeOfDay: m.timeOfDay, days: m.days,
       };
@@ -233,7 +237,7 @@
     body.innerHTML = `
       <p>Each mood is a set of search phrases. Echo Volume asks Alexa to play one on Apple Music, lets that mix play for a few
         tracks, then moves to another, so it never runs out. <b>Alexa plays by search phrase, so what you hear can vary.</b></p>
-      <p class="muted small mf-p">It learns as you go: a mix you skip within 20 seconds comes up less, one you listen to or whose song you ★ comes up more.
+      <p class="muted small mf-p">It learns as you go: a mix you skip within 20 seconds comes up less, one you listen to or whose song you star comes up more.
         Mixes from the last 3 days are left out while there are others.</p>
       <h3 class="mf-h">Healing frequencies</h3>
       <div class="freq-list">${S.presets.map((p) => `<div class="freq"><b>${esc(p.name)}</b>${p.hz ? `<span class="badge neutral">${esc(String(p.hz))} Hz</span>` : ''}
@@ -282,6 +286,7 @@
     } catch (err) { UI.toast('Mood', err.message, true); b.classList.remove('busy'); }
   });
 
+  document.addEventListener('devices', () => { if (S.loaded) render(); });
   window.tabLoaders.moods = load;
   if (document.querySelector('#tabs .cur')?.dataset.tab === 'moods') load(); // opened on Moods (before this loaded)
   // The background follows a mood started anywhere (tray, a scene, another device) from the start

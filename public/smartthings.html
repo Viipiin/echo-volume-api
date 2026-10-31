@@ -66,7 +66,7 @@ async function init() {
     const s = await api('/auth/status');
     if (!s.configured) { $('intro').innerHTML = 'Not configured yet: set <code>ST_CLIENT_ID</code> and <code>ST_CLIENT_SECRET</code> in <code>.env</code>, then restart the server.'; return; }
     $('intro').textContent = s.connected ? 'SmartThings is connected. You can reconnect below if needed.' : 'Sign in once; the server keeps itself signed in after that.';
-    if (s.connected) status('Connected ✓', 'ok');
+    if (s.connected) status('Connected', 'ok');
     $('steps').hidden = false;
     if (/Electron/.test(navigator.userAgent)) {
       // Desktop app: the sign-in window captures the code itself
@@ -84,7 +84,7 @@ $('connect').onclick = async () => {
   const got = extract($('paste').value);
   if (!got) return status('Could not find a code in what you pasted.', 'err');
   status('Connecting…');
-  try { await api('/auth/code', got); status('Connected ✓ — you can go back to Echo Volume.', 'ok'); $('paste').value = ''; }
+  try { await api('/auth/code', got); status('Connected. You can go back to Echo Volume.', 'ok'); $('paste').value = ''; }
   catch (e) { status(e.message, 'err'); }
 };
 init();

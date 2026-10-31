@@ -107,7 +107,7 @@ module.exports = function features(ctx) {
       if (!title || i.state !== 'PLAYING' || lastSong[serial] === title) return;
       lastSong[serial] = title;
       notify('song', {
-        title: `♪ ${title}`,
+        title,
         body: [i.infoText?.subText1, alexa.serialNumbers[serial]?.accountName].filter(Boolean).join(' · '),
         artwork: i.mainArt?.url || null,
       });
@@ -195,7 +195,7 @@ module.exports = function features(ctx) {
     for (const a of alertList()) {
       if (a.type === 'reminder' || a.status !== 'ON' || !a.at || a.at <= now || a.at - now > 24 * 3600 * 1000) continue;
       alertTimeouts.push(setTimeout(() => notify('alert', {
-        title: a.type === 'timer' ? `⏱ ${a.label ? `${a.label} timer` : 'Timer'} done` : `⏰ ${a.label || 'Alarm'}`,
+        title: a.type === 'timer' ? `${a.label ? `${a.label} timer` : 'Timer'} done` : a.label ? `Alarm: ${a.label}` : 'Alarm',
         body: `On ${a.deviceName}`,
       }), a.at - now));
     }
@@ -534,7 +534,7 @@ module.exports = function features(ctx) {
 
   // ---------- Apple Podcasts: browse Apple's free catalog; Alexa plays a show or its latest episode ----------
   // (Alexa can't start an older episode by name: "I couldn't find … on Apple Podcasts". From the latest episode,
-  // ⏮ goes back one episode at a time.)
+  // Previous goes back one episode at a time.)
   async function fetchJson(url, timeout = 10000) {
     const r = await fetch(url, { signal: AbortSignal.timeout(timeout) });
     if (!r.ok) throw httpErr(502, `Apple returned ${r.status}`);
@@ -786,7 +786,7 @@ module.exports = function features(ctx) {
         store.celebrated[c.id] = today;
         saveStore();
         console.log(`Announced: ${celebrationText(c, now)}`);
-        notify('alert', { title: c.type === 'anniversary' ? '💐 Anniversary today' : '🎂 Birthday today', body: celebrationText(c, now) });
+        notify('alert', { title: c.type === 'anniversary' ? 'Anniversary today' : 'Birthday today', body: celebrationText(c, now) });
       } catch (e) {
         console.log(`Announcing "${c.name}" failed:`, e.message);
         celebrateRetry = Date.now() + 60000;

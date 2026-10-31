@@ -1088,7 +1088,7 @@ async function buildTop() {
   if (items.length < TOP_MIN_ITEMS) { await work; items = pickFresh('top', interleave(groups), TOP_COUNT, []); }
   return items;
 }
-// The next mix is built in the background as soon as one is shown, so the ↻ button gets it at once
+// The next mix is built in the background as soon as one is shown, so the Refresh button gets it at once
 let topNext = null; // { at, promise }
 const prefetchTop = () => { topNext = { at: Date.now(), promise: buildTop().catch(() => null) }; };
 async function topSongs() {
