@@ -38,8 +38,9 @@ scripts/make-icon.js Generates the icons
 |---|---|
 | `npm start` | Run the server + web UI at http://localhost:5005 |
 | `npm run app` | Run the desktop app in development |
-| `npm run dist` | Build the Windows installer into `dist/` |
-| `npm run icons` | Regenerate the icons in `build/` |
+| `npm run build:all` | Build the Windows installer: `dist-installer/Echo-Volume-Setup-<version>.exe` (see [installer/README.md](installer/README.md)) |
+| `npm run dist` | Older NSIS installer into `dist/` (fallback only) |
+| `npm run icons` | Regenerate the logo icons (`build/icon.png`, `build/tray.png`, `public/app-icon.png`) |
 
 ## Setup (Windows / Mac / Linux)
 
