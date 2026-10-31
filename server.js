@@ -345,7 +345,9 @@ function jsonSaver(file, data, delay) {
     });
   };
   process.on('exit', () => { if (dirty) try { fs.writeFileSync(file, data()); } catch {} });
-  return () => { dirty = true; clearTimeout(timer); timer = setTimeout(write, delay); };
+  // At most one write per `delay`: later changes ride along with the write already scheduled (resetting the timer
+  // instead would never write while changes keep coming faster than `delay`, e.g. the catalog warmer every 6 s)
+  return () => { dirty = true; timer ||= setTimeout(write, delay); };
 }
 const saveStore = jsonSaver(STORE_FILE, () => JSON.stringify(store, null, 2), 250);
 
@@ -889,12 +891,19 @@ async function playPodcastShow(dev, show) {
 // History charts. Played like a playlist (one item at a time) that tops itself up near its end. What a Surprise
 // has played is kept for a few days and left out of later mixes while there's enough else.
 const SURPRISE_ARTISTS = {
-  new: ['Arijit Singh', 'Pritam', 'Shreya Ghoshal', 'Vishal Mishra', 'Jubin Nautiyal', 'Sachet Tandon', 'Atif Aslam', 'Badshah', 'Sachin-Jigar', 'Darshan Raval', 'Neha Kakkar', 'B Praak'],
-  noughties: ['Sonu Nigam', 'KK', 'Shaan', 'Mohit Chauhan', 'Sunidhi Chauhan', 'Shankar-Ehsaan-Loy', 'A.R. Rahman', 'Himesh Reshammiya', 'Javed Ali', 'Shafqat Amanat Ali', 'Vishal-Shekhar', 'Kunal Ganjawala'],
-  nineties: ['Kumar Sanu', 'Udit Narayan', 'Alka Yagnik', 'Abhijeet', 'Nadeem-Shravan', 'Anu Malik', 'Jatin-Lalit', 'Kavita Krishnamurthy', 'Sadhana Sargam', 'Hariharan'],
-  classic: ['Kishore Kumar', 'Mohammed Rafi', 'Lata Mangeshkar', 'Asha Bhosle', 'R.D. Burman', 'Mukesh', 'Laxmikant-Pyarelal', 'Manna Dey', 'Hemant Kumar', 'S.D. Burman'],
-  indie: ['Jagjit Singh', 'Ghulam Ali', 'Nusrat Fateh Ali Khan', 'Rahat Fateh Ali Khan', 'Kailash Kher', 'Anuv Jain', 'Prateek Kuhad', 'The Local Train', 'Papon', 'Lucky Ali', 'Pankaj Udhas', 'Ritviz'],
-  punjabi: ['Diljit Dosanjh', 'AP Dhillon', 'Karan Aujla', 'Sidhu Moose Wala', 'Guru Randhawa', 'Shubh', 'Gurdas Maan', 'Masoom Sharma', 'Sapna Choudhary', 'Amit Saini Rohtakiya', 'Jassie Gill', 'Harrdy Sandhu'],
+  new: ['Arijit Singh', 'Pritam', 'Shreya Ghoshal', 'Vishal Mishra', 'Jubin Nautiyal', 'Sachet Tandon', 'Atif Aslam', 'Badshah', 'Sachin-Jigar', 'Darshan Raval',
+    'Neha Kakkar', 'B Praak', 'Armaan Malik', 'Tanishk Bagchi', 'Mithoon', 'Amaal Mallik', 'Asees Kaur', 'Neeti Mohan', 'Shilpa Rao', 'Jasleen Royal',
+    'Stebin Ben'],
+  noughties: ['Sonu Nigam', 'KK', 'Shaan', 'Mohit Chauhan', 'Sunidhi Chauhan', 'Shankar-Ehsaan-Loy', 'A.R. Rahman', 'Himesh Reshammiya', 'Javed Ali', 'Shafqat Amanat Ali',
+    'Vishal-Shekhar', 'Kunal Ganjawala', 'Sukhwinder Singh', 'Salim-Sulaiman', 'Amit Trivedi', 'Mika Singh', 'Adnan Sami', 'Benny Dayal'],
+  nineties: ['Kumar Sanu', 'Udit Narayan', 'Alka Yagnik', 'Abhijeet', 'Nadeem-Shravan', 'Anu Malik', 'Jatin-Lalit', 'Kavita Krishnamurthy', 'Sadhana Sargam', 'Hariharan',
+    'Vinod Rathod', 'Anuradha Paudwal', 'Bappi Lahiri'],
+  classic: ['Kishore Kumar', 'Mohammed Rafi', 'Lata Mangeshkar', 'Asha Bhosle', 'R.D. Burman', 'Mukesh', 'Laxmikant-Pyarelal', 'Manna Dey', 'Hemant Kumar', 'S.D. Burman',
+    'Geeta Dutt', 'Talat Mahmood', 'Shankar-Jaikishan', 'Madan Mohan', 'O.P. Nayyar'],
+  indie: ['Jagjit Singh', 'Ghulam Ali', 'Nusrat Fateh Ali Khan', 'Rahat Fateh Ali Khan', 'Kailash Kher', 'Anuv Jain', 'Prateek Kuhad', 'The Local Train', 'Papon', 'Lucky Ali',
+    'Pankaj Udhas', 'Ritviz'],
+  punjabi: ['Diljit Dosanjh', 'AP Dhillon', 'Karan Aujla', 'Sidhu Moose Wala', 'Guru Randhawa', 'Shubh', 'Gurdas Maan', 'Masoom Sharma', 'Sapna Choudhary', 'Amit Saini Rohtakiya',
+    'Jassie Gill', 'Harrdy Sandhu'],
 };
 // Other Indian languages and devotional music are left out; "chart" songs must also be Hindi / Punjabi kinds
 const NOT_HINDI = /tamil|telugu|bengali|malayalam|kannada|marathi|gujarati|bhojpuri|odia|oriya|assamese|devotional|christian|children/i;
@@ -973,7 +982,7 @@ try {
   catalog = JSON.parse(fs.readFileSync(CATALOG_FILE, 'utf8')) || {};
   for (const [k, v] of Object.entries(catalog)) if (!(Date.now() - v?.at < CATALOG_MAX_AGE)) delete catalog[k];
 } catch {}
-const saveCatalog = jsonSaver(CATALOG_FILE, () => JSON.stringify(catalog), 3000);
+const saveCatalog = jsonSaver(CATALOG_FILE, () => JSON.stringify(catalog), 20000); // a few MB: at most every 20 s
 const catalogFailed = {}; // key -> until when not to ask again
 const catalogLoading = {}; // key -> the request in flight (one per key)
 const itunesCalls = []; // times of recent iTunes searches
@@ -998,18 +1007,24 @@ async function catalogGet(key, load, { fresh, swr = false }) {
   return run();
 }
 
-// An artist's popular songs (their top 25 in Apple's search, Hindi kinds only)
+// An artist's popular songs (up to 30 of their top 50 in Apple's search, Hindi kinds only)
 function artistSongs(name) {
   return catalogGet('artist:' + name, async () => {
     itunesCalls.push(Date.now());
-    const url = `https://itunes.apple.com/search?media=music&entity=song&limit=25&country=${MUSIC_COUNTRY}&term=${encodeURIComponent(name)}`;
+    const url = `https://itunes.apple.com/search?media=music&entity=song&limit=50&country=${MUSIC_COUNTRY}&term=${encodeURIComponent(name)}`;
     const { results = [] } = await getJson(url, 8000);
     const want = words(name);
+    // Short names (KK, U2, AC/DC, a-ha, P!nk) have no word long enough to match on: compare the whole name instead
+    const flat = (x) => (x || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const byThem = want.length ? (r) => want.some((w) => words(`${r.artistName} ${r.collectionName}`).includes(w))
+      : (r) => (r.artistName || '').toLowerCase().split(/\s*(?:,|&|\bfeat\.?|\band\b|\bx\b)\s*/).map(flat).includes(flat(name)); // "KK", "KK & Shreya Ghoshal"
     return results.filter((r) => r.trackName && !NOT_HINDI.test(r.primaryGenreName || '') && !ODD_VERSION.test(`${r.trackName} ${r.collectionName}`)
         && (!r.trackTimeMillis || (r.trackTimeMillis > 90000 && r.trackTimeMillis < 15 * 60000))
-        && want.some((w) => words(`${r.artistName} ${r.collectionName}`).includes(w))) // by them, not just a similar name
-      .map((r) => ({ type: 'song', id: r.trackId, title: r.trackName, subtitle: r.artistName, artwork: art(r.artworkUrl100), query: phrase('song', r.trackName, r.artistName) }));
-  }, { fresh: 24 * 3600000 });
+        && byThem(r)) // by them, not just a similar name
+      .map((r) => ({ type: 'song', id: r.trackId, title: r.trackName, subtitle: r.artistName, artwork: art(r.artworkUrl100), query: phrase('song', r.trackName, r.artistName) }))
+      .filter((x, i, all) => all.findIndex((y) => y.query === x.query) === i) // one of each song (singles and albums repeat)
+      .slice(0, 30);
+  }, { fresh: 3 * 86400000 }); // ~250 artists: their popular songs barely change, and iTunes allows ~20 searches a minute
 }
 // Chart feeds: answered from the cache at once and refreshed in the background (they often hang a request)
 const chartFeed = (key, url, keep) => catalogGet(key, async () => {
@@ -1044,18 +1059,33 @@ async function surpriseSongs(queued = []) {
 // One random artist per kind (a few of their popular songs) plus current hits from the Indian and US charts,
 // interleaved. Songs shown recently go to the back, so a refresh brings new ones while there are any.
 const TOP_ARTISTS = {
+  // Hindi
   hindiNew: SURPRISE_ARTISTS.new, hindi2000s: SURPRISE_ARTISTS.noughties, hindi90s: SURPRISE_ARTISTS.nineties,
   hindiClassic: SURPRISE_ARTISTS.classic,
-  hindiIndie: ['Anuv Jain', 'Prateek Kuhad', 'The Local Train', 'Lucky Ali', 'Papon', 'Ritviz', 'Kailash Kher', 'Mohit Chauhan', 'Amit Trivedi', 'Seedhe Maut', 'Divine', 'Raftaar'],
-  ghazal: ['Jagjit Singh', 'Ghulam Ali', 'Mehdi Hassan', 'Pankaj Udhas', 'Talat Aziz', 'Chitra Singh', 'Farida Khanum', 'Hariharan'],
-  punjabi: ['Diljit Dosanjh', 'AP Dhillon', 'Karan Aujla', 'Sidhu Moose Wala', 'Guru Randhawa', 'Shubh', 'Gurdas Maan', 'Jassie Gill', 'Harrdy Sandhu', 'Ammy Virk', 'B Praak', 'Satinder Sartaaj', 'Babbu Maan', 'Amrinder Gill'],
-  urdu: ['Atif Aslam', 'Ali Zafar', 'Ali Sethi', 'Hasan Raheem', 'Talha Anjum', 'Asim Azhar', 'Strings', 'Junoon', 'Sajjad Ali', 'Bilal Saeed', 'Farhan Saeed', 'Momina Mustehsan', 'Quratulain Balouch', 'Noori'],
-  sufi: ['Nusrat Fateh Ali Khan', 'Rahat Fateh Ali Khan', 'Abida Parveen', 'Shafqat Amanat Ali', 'Wadali Brothers', 'Kailash Kher', 'Sabri Brothers'],
-  englishPop: ['Taylor Swift', 'Ed Sheeran', 'Dua Lipa', 'The Weeknd', 'Bruno Mars', 'Billie Eilish', 'Ariana Grande', 'Justin Bieber', 'Harry Styles', 'Sabrina Carpenter', 'Olivia Rodrigo', 'Adele', 'Shawn Mendes', 'Charlie Puth'],
-  englishRock: ['Coldplay', 'Imagine Dragons', 'Linkin Park', 'Queen', 'Maroon 5', 'OneRepublic', 'Arctic Monkeys', 'The Beatles', 'Bon Jovi', "Guns N' Roses", 'Eagles', 'Nirvana', 'The Killers', 'Green Day'],
-  englishHipHop: ['Eminem', 'Drake', 'Kendrick Lamar', 'Post Malone', 'Travis Scott', 'Rihanna', 'Beyoncé', 'SZA', '50 Cent', 'Doja Cat', 'Chris Brown', 'Usher', 'Snoop Dogg', 'Khalid'],
-  englishDance: ['Calvin Harris', 'David Guetta', 'Avicii', 'Alan Walker', 'Martin Garrix', 'Marshmello', 'The Chainsmokers', 'Kygo', 'Daft Punk', 'Swedish House Mafia', 'Zedd', 'Clean Bandit'],
-  englishClassic: ['Michael Jackson', 'ABBA', 'Whitney Houston', 'Elton John', 'Bee Gees', 'Madonna', 'Lionel Richie', 'Celine Dion', 'Backstreet Boys', 'Phil Collins', 'George Michael', 'Bryan Adams'],
+  hindiIndie: ['Anuv Jain', 'Prateek Kuhad', 'The Local Train', 'Lucky Ali', 'Papon', 'Ritviz', 'Kailash Kher', 'Mohit Chauhan', 'Amit Trivedi', 'Euphoria',
+    'Indian Ocean', 'Aditya Rikhari'],
+  hindiRap: ['Divine', 'Raftaar', 'Seedhe Maut', 'Badshah', 'Yo Yo Honey Singh', 'Emiway Bantai', 'KR$NA', 'MC Stan', 'King', 'Ikka'],
+  ghazal: ['Jagjit Singh', 'Ghulam Ali', 'Mehdi Hassan', 'Pankaj Udhas', 'Talat Aziz', 'Chitra Singh', 'Farida Khanum', 'Hariharan', 'Begum Akhtar', 'Iqbal Bano'],
+  sufi: ['Nusrat Fateh Ali Khan', 'Rahat Fateh Ali Khan', 'Abida Parveen', 'Shafqat Amanat Ali', 'Wadali Brothers', 'Kailash Kher', 'Sabri Brothers', 'Sain Zahoor', 'Hans Raj Hans', 'Nooran Sisters'],
+  // Punjabi
+  punjabi: ['Diljit Dosanjh', 'AP Dhillon', 'Karan Aujla', 'Sidhu Moose Wala', 'Guru Randhawa', 'Shubh', 'Jassie Gill', 'Harrdy Sandhu', 'Ammy Virk', 'B Praak',
+    'Amrinder Gill', 'Gurnam Bhullar', 'Jass Manak', 'Arjan Dhillon', 'Sunanda Sharma', 'Nimrat Khaira', 'Kaka', 'Garry Sandhu', 'Mankirt Aulakh', 'Imran Khan'],
+  punjabiClassic: ['Gurdas Maan', 'Babbu Maan', 'Satinder Sartaaj', 'Sardool Sikander', 'Surjit Bindrakhia', 'Daler Mehndi', 'Malkit Singh', 'Jazzy B', 'Bohemia', 'Panjabi MC'],
+  // Urdu
+  urdu: ['Atif Aslam', 'Ali Zafar', 'Ali Sethi', 'Hasan Raheem', 'Talha Anjum', 'Asim Azhar', 'Strings', 'Junoon', 'Sajjad Ali', 'Bilal Saeed',
+    'Farhan Saeed', 'Momina Mustehsan', 'Quratulain Balouch', 'Noori', 'Vital Signs', 'Nazia Hassan', 'Abrar-ul-Haq', 'Young Stunners'],
+  // English
+  englishPop: ['Taylor Swift', 'Ed Sheeran', 'Dua Lipa', 'The Weeknd', 'Bruno Mars', 'Billie Eilish', 'Ariana Grande', 'Justin Bieber', 'Harry Styles', 'Sabrina Carpenter',
+    'Olivia Rodrigo', 'Adele', 'Shawn Mendes', 'Charlie Puth', 'Lady Gaga', 'Katy Perry', 'Selena Gomez', 'Sia', 'Sam Smith', 'Rihanna'],
+  englishRock: ['Coldplay', 'Imagine Dragons', 'Linkin Park', 'Queen', 'Maroon 5', 'OneRepublic', 'Arctic Monkeys', 'The Beatles', 'Bon Jovi', "Guns N' Roses",
+    'Eagles', 'Nirvana', 'The Killers', 'Green Day', 'Foo Fighters', 'Red Hot Chili Peppers', 'U2', 'Oasis', 'Pink Floyd', 'Fleetwood Mac'],
+  englishHipHop: ['Eminem', 'Drake', 'Kendrick Lamar', 'Post Malone', 'Travis Scott', 'Beyoncé', 'SZA', '50 Cent', 'Doja Cat', 'Snoop Dogg',
+    'Kanye West', 'Cardi B', 'Nicki Minaj', 'J. Cole', 'Lil Wayne'],
+  englishRnB: ['Chris Brown', 'Usher', 'Khalid', 'Alicia Keys', 'John Legend', 'Frank Ocean', 'Daniel Caesar', 'Ne-Yo', 'Akon', 'Mariah Carey'],
+  englishDance: ['Calvin Harris', 'David Guetta', 'Avicii', 'Alan Walker', 'Martin Garrix', 'Marshmello', 'The Chainsmokers', 'Kygo', 'Daft Punk', 'Swedish House Mafia'],
+  englishIndie: ['Hozier', 'Lewis Capaldi', 'James Arthur', 'Passenger', 'The Lumineers', 'Mumford & Sons', 'Vance Joy', 'Tame Impala', 'Joji', 'John Mayer'],
+  englishClassic: ['Michael Jackson', 'ABBA', 'Whitney Houston', 'Elton John', 'Bee Gees', 'Madonna', 'Lionel Richie', 'Celine Dion', 'Backstreet Boys', 'Phil Collins',
+    'George Michael', 'Bryan Adams', 'Bob Marley & The Wailers'],
 };
 // TOP_COUNT songs per mix, topped up from the charts when the artists come up short. 120 fills whole rows at 2-6, 8,
 // 10 or 12 columns, and the page hides a part-filled last row, so at least 100 always show.
@@ -1079,7 +1109,7 @@ async function buildTop() {
         if (!has(name)) { if (lookups <= 0) continue; lookups--; }
         const songs = has(name) ? catalog['artist:' + name].value // a week-old list is still a fine mix
           : await artistSongs(name).catch((e) => { console.log(`Top songs: ${name}: ${e.message}`); return []; });
-        const picked = pickFresh('top', shuffle(songs.slice(0, 15)), TOP_PER_ARTIST, []);
+        const picked = pickFresh('top', shuffle(songs.slice(0, 25)), TOP_PER_ARTIST, []);
         if (picked.length) { byArtist[name] = picked; groups[kind] = interleave(byArtist); }
         if (Object.keys(byArtist).length >= TOP_PER_KIND) break;
       }
