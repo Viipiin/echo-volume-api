@@ -73,11 +73,12 @@ h2 { font-size: 24px; line-height: 1.2; }
 .ring { position: absolute; inset: 24px; border-radius: 34px; border: 1.5px solid rgba(44, 195, 240, 0.5); opacity: 0; animation: ripple 3.2s var(--ease) infinite; }
 .r2 { animation-delay: 1.05s; } .r3 { animation-delay: 2.1s; }
 .logo-wrap.still .ring { display: none; }
-.wave { animation: wave 2.4s ease-in-out infinite; transform-origin: 40px 50px; }
-.w2 { animation-delay: 0.25s; }
+/* The logo's pills breathe like a level meter */
+.wave { animation: wave 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.w2 { animation-delay: 0.3s; } .w3 { animation-delay: 0.6s; }
 @keyframes pop { from { opacity: 0; transform: scale(0.6) rotate(-8deg); } to { opacity: 1; transform: none; } }
 @keyframes ripple { 0% { opacity: 0.7; transform: scale(1); } 100% { opacity: 0; transform: scale(1.55); } }
-@keyframes wave { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+@keyframes wave { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(0.72); } }
 .hero-text { min-width: 0; }
 .existing { margin-top: 16px; padding: 10px 14px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); max-width: 420px; }
 .ex-title { margin: 0; font-weight: 600; }

@@ -35,7 +35,8 @@ label.toggle { font-size: 13px; color: var(--muted); display: inline-flex; gap: 
   .side { display: none; }
   .wrap { padding: var(--sp-4) var(--sp-4) calc(var(--tabbar-h) + var(--sp-6) + env(safe-area-inset-bottom)); }
   .phone-only { display: flex !important; }
-  .hello .brand { padding: 0 0 6px; font-size: 14px; }
+  .hello .brand { padding: 0 0 6px; }
+  .hello .brand .wordmark { font-size: 13px; }
   .hello .brand svg.logo { width: 22px; height: 22px; }
   .top-bar #stopAll span { display: none; }
   .top-bar #stopAll { width: 32px; padding: 0; }

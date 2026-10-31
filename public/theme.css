@@ -3,9 +3,9 @@
    soft glow, glassy surfaces, Segoe UI Variable, an ease-out curve.
 
    Theme = data-theme on <html> (or on any element, for the style guide):
-     none        follows the system: Light by day, Midnight when Windows is dark
+     none        "Auto (match Windows)": Light while Windows is in light mode, Midnight while it is in dark mode
      "light"     derived from the installer tokens for light backgrounds (accent darkened to pass AA as text)
-     "dark"      neutral graphite with the same accent
+     "dark"      flat neutral graphite: no blue tint, glow, glass or background blobs
      "midnight"  the installer exactly (the default for new installs)
    Mood ambience: --mood-a / --mood-b are set on <html> while a mood plays (moods-ui.js). */
 
@@ -47,29 +47,33 @@
   color-scheme: light;
 }
 
-/* ---------- Dark: neutral graphite ---------- */
+/* ---------- Dark: neutral graphite, flat and quiet (no blue tint, no glow, no glass, no drifting blobs).
+   The opposite of Midnight on purpose: Midnight is the installer's navy with a cyan glow. ---------- */
 [data-theme="dark"] {
-  --bg: #101318; --bg-2: #161b23;
-  --surface-1: rgba(255, 255, 255, 0.045); --surface-2: rgba(255, 255, 255, 0.07); --surface-3: rgba(255, 255, 255, 0.1); --surface-solid: #1a1f27;
-  --field: rgba(0, 0, 0, 0.25);
-  --line: rgba(255, 255, 255, 0.1); --line-2: rgba(255, 255, 255, 0.18);
-  --text: #e9ecf1; --muted: #9aa3b2; --faint: #6f7888;
-  --accent: #2cc3f0; --accent-2: #7be3ff; --accent-ink: #04121a;
-  --accent-tint: rgba(44, 195, 240, 0.1); --accent-line: rgba(44, 195, 240, 0.35);
-  --btn-primary: linear-gradient(180deg, #7be3ff, #2cc3f0);
-  --danger: #ff8a8a; --danger-ink: #2a0707; --btn-danger: linear-gradient(180deg, #ffb0b0, #ff8a8a);
-  --ok: #46e0b0; --warn: #ffc56b;
-  --glow: 0 8px 24px -8px rgba(44, 195, 240, 0.5);
-  --glow-hover: 0 0 0 4px rgba(44, 195, 240, 0.16), 0 10px 30px -6px rgba(44, 195, 240, 0.65);
-  --shadow-1: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 12px 32px rgba(0, 0, 0, 0.35);
-  --shadow-2: 0 30px 70px -10px rgba(0, 0, 0, 0.6);
-  --scrim: rgba(0, 0, 0, 0.5);
-  --page: radial-gradient(120% 90% at 0% 0%, var(--bg-2), var(--bg) 60%);
-  --blob-1: #2a3442; --blob-2: #283352; --blob-3: #1b4b5c; --blob-opacity: 0.4;
-  --skeleton: rgba(255, 255, 255, 0.06); --skeleton-shine: rgba(255, 255, 255, 0.1);
-  --glass: blur(14px);
+  --bg: #121212; --bg-2: #121212;
+  --surface-1: #1c1c1e; --surface-2: #242426; --surface-3: #2c2c2f; --surface-solid: #1c1c1e;
+  --field: #161618;
+  --line: rgba(255, 255, 255, 0.08); --line-2: rgba(255, 255, 255, 0.16);
+  --text: #ececec; --muted: #a1a1a6; --faint: #6e6e73;
+  --accent: #5ccfe6; --accent-2: #8fdeee; --accent-ink: #0a1418;
+  --accent-tint: rgba(92, 207, 230, 0.1); --accent-line: rgba(92, 207, 230, 0.3);
+  --btn-primary: #5ccfe6;
+  --danger: #ff8a80; --danger-ink: #2a0707; --btn-danger: #ff8a80;
+  --ok: #5fd3a5; --warn: #f2c46d;
+  --glow: none;
+  --glow-hover: 0 0 0 3px rgba(92, 207, 230, 0.16);
+  --shadow-1: none;
+  --shadow-2: 0 24px 60px -12px rgba(0, 0, 0, 0.7);
+  --scrim: rgba(0, 0, 0, 0.6);
+  --page: #121212;
+  --blob-1: transparent; --blob-2: transparent; --blob-3: transparent; --blob-opacity: 0;
+  --skeleton: rgba(255, 255, 255, 0.06); --skeleton-shine: rgba(255, 255, 255, 0.08);
+  --glass: none;
   color-scheme: dark;
 }
+[data-theme="dark"] .bgfx { display: none; }
+/* The mood still tints the page in Dark, but only as a faint wash at the top */
+[data-theme="dark"].mood-on body { background: linear-gradient(180deg, color-mix(in srgb, var(--mood-a) 10%, #121212), #121212 420px) fixed; }
 
 /* ---------- Midnight: the installer (also System when Windows is dark; the same block, twice) ---------- */
 [data-theme="midnight"] {

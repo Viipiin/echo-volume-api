@@ -91,9 +91,9 @@ async function api(url, body) {
 // ---------- windows ----------
 const toThemeSource = (t) => (t === 'midnight' ? 'dark' : t);
 const isDark = () => nativeTheme.shouldUseDarkColors;
-// The window's background and its title bar buttons, per theme (public/theme.css). System follows Windows:
+// The window's background and its title bar buttons, per theme (public/theme.css). Auto ("system") follows Windows:
 // Light, or Midnight when Windows is dark.
-const THEME_COLORS = { light: { bg: '#f3f6fb', fg: '#0f1726' }, dark: { bg: '#101318', fg: '#e9ecf1' }, midnight: { bg: '#0b0f1a', fg: '#e8edf7' } };
+const THEME_COLORS = { light: { bg: '#f3f6fb', fg: '#0f1726' }, dark: { bg: '#121212', fg: '#ececec' }, midnight: { bg: '#0b0f1a', fg: '#e8edf7' } };
 const themeName = () => { const t = server?.theme(); return t === 'system' || !THEME_COLORS[t] ? (isDark() ? 'midnight' : 'light') : t; };
 const colors = () => THEME_COLORS[themeName()];
 

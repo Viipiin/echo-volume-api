@@ -28,6 +28,11 @@ h1:focus-visible, h2:focus-visible, [tabindex="-1"]:focus-visible { outline: non
 svg.i { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; vertical-align: middle; }
 svg.i.sm { width: 16px; height: 16px; } svg.i.lg { width: 24px; height: 24px; }
 svg.logo { width: 24px; height: 24px; flex: none; }
+/* Wordmark: ECHO in the text colour, VOLUME in the accent; solid letters so it stays crisp at every size */
+.wordmark { font: 700 15px/1 var(--font-display); letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; }
+.wordmark b { font-weight: inherit; color: var(--text); }
+.wordmark > span { color: var(--accent); }
+.titlebar .wordmark { font-size: 11.5px; }
 
 /* ---------- background: three slow blobs (paused while hidden, see shell.js) ---------- */
 .bgfx { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
@@ -250,6 +255,15 @@ input[type=checkbox]:not(.switch input):disabled { opacity: 0.5; cursor: default
 .popover button { display: flex; align-items: center; gap: 10px; width: 100%; height: 38px; padding: 0 10px; border: 0; border-radius: var(--r-sm); background: transparent; color: var(--text); font: 13.5px var(--font); text-align: left; cursor: pointer; }
 .popover button:hover, .popover button:focus-visible { background: var(--surface-3); }
 .popover button[aria-checked="true"] { color: var(--accent); }
+.popover button:has(small) { height: auto; min-height: 44px; padding-block: 6px; }
+.popover .pl { display: flex; flex-direction: column; line-height: 1.25; }
+.popover .pl small { color: var(--muted); font-size: var(--fs-xs); }
+/* Theme swatches: each shows its theme's page and accent (fixed colours, so they read the same in every theme) */
+.swatch { flex: none; width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--line-2); }
+.sw-light { background: linear-gradient(135deg, #f3f6fb 55%, #0a7ea8 55%); }
+.sw-dark { background: linear-gradient(135deg, #1c1c1e 55%, #5ccfe6 55%); }
+.sw-midnight { background: radial-gradient(circle at 70% 70%, #2cc3f0 0 22%, transparent 24%), linear-gradient(135deg, #0f1526, #3b4bd8); }
+.sw-system { background: linear-gradient(90deg, #f3f6fb 50%, #0f1526 50%); }
 @keyframes rise { from { opacity: 0; transform: translateY(6px); } }
 
 /* ---------- toasts ---------- */
@@ -272,7 +286,7 @@ input[type=checkbox]:not(.switch input):disabled { opacity: 0.5; cursor: default
 /* ---------- sidebar and bottom tab bar ---------- */
 .side { display: flex; flex-direction: column; gap: var(--sp-4); padding: var(--sp-4) var(--sp-3); }
 .brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px; font: 650 15px var(--font-display); letter-spacing: 0.02em; white-space: nowrap; }
-.brand svg.logo { width: 28px; height: 28px; filter: drop-shadow(0 6px 14px rgba(14, 143, 184, 0.45)); }
+.brand svg.logo { width: 28px; height: 28px; filter: drop-shadow(0 6px 14px rgba(14, 143, 184, 0.35)); }
 .nav { display: flex; flex-direction: column; gap: 2px; }
 .nav button { position: relative; display: flex; align-items: center; gap: 12px; height: 42px; padding: 0 12px; border: 0; border-radius: var(--r-md); background: transparent;
   color: var(--muted); font: 600 14px var(--font); text-align: left; cursor: pointer; white-space: nowrap; transition: background var(--d-fast), color var(--d-fast); }

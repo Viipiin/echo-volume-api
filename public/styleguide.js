@@ -38,8 +38,9 @@
   $('sgConfirm').onclick = async () => UI.toast('Answer', String(await UI.confirm('Delete the scene “Movie time”?', { ok: 'Delete', danger: true })));
   $('sgMenu').onclick = async (e) => {
     const cur = root.dataset.theme || 'system';
-    const v = await UI.menu(e.currentTarget, [['system', 'System', 'monitor'], ['light', 'Light', 'sun'], ['dark', 'Dark', 'moon'], ['midnight', 'Midnight', 'sparkle']]
-      .map(([value, label, icon]) => ({ value, label, icon: icon === 'sparkle' ? 'moods' : icon, checked: value === cur })));
+    const v = await UI.menu(e.currentTarget, [['system', 'Auto (match Windows)', 'Light or Midnight, following Windows'], ['light', 'Light', 'Bright and airy'],
+      ['dark', 'Dark', 'Flat graphite, no glow'], ['midnight', 'Midnight', 'Deep navy with a cyan glow']]
+      .map(([value, label, hint]) => ({ value, label, hint, swatch: value, checked: value === cur })));
     if (v) setTheme(v);
   };
   $('sgSheet').onclick = () => {

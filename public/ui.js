@@ -98,7 +98,7 @@
     pop.className = 'popover';
     pop.setAttribute('role', 'menu');
     pop.innerHTML = items.map((it, i) => `<button type="button" role="menuitemradio" aria-checked="${!!it.checked}" data-i="${i}">
-      ${it.icon ? icon(it.icon, 'sm') : ''}<span>${esc(it.label)}</span>${it.checked ? `<span class="spacer"></span>${icon('check', 'sm')}` : ''}</button>`).join('');
+      ${it.swatch ? `<span class="swatch sw-${esc(it.swatch)}" aria-hidden="true"></span>` : it.icon ? icon(it.icon, 'sm') : ''}<span class="pl">${esc(it.label)}${it.hint ? `<small>${esc(it.hint)}</small>` : ''}</span>${it.checked ? `<span class="spacer"></span>${icon('check', 'sm')}` : ''}</button>`).join('');
     document.body.append(pop);
     const r = anchor.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
     pop.style.left = `${Math.max(8, Math.min(innerWidth - w - 8, r.right - w))}px`;

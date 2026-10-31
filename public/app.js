@@ -16,7 +16,8 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt
 
 // Theme and the music Echo are saved on the server, so the browser and the desktop app match
 const THEMES = ['light', 'dark', 'midnight'];
-const THEME_NAMES = { system: 'System', light: 'Light', dark: 'Dark', midnight: 'Midnight' };
+const THEME_NAMES = { system: 'Auto (match Windows)', light: 'Light', dark: 'Dark', midnight: 'Midnight' };
+const THEME_HINTS = { system: 'Light or Midnight, following Windows', light: 'Bright and airy', dark: 'Flat graphite, no glow', midnight: 'Deep navy with a cyan glow' };
 let themeNow = 'system';
 function applyTheme(t) {
   themeNow = THEMES.includes(t) ? t : 'system';
@@ -29,8 +30,8 @@ function applyTheme(t) {
 let uiState = { theme: 'system', musicDevice: '' };
 const uiReady = api('/ui').then((s) => { uiState = s; applyTheme(s.theme); }).catch(() => {});
 $('theme').onclick = async () => {
-  const t = await UI.menu($('theme'), [['system', 'monitor'], ['light', 'sun'], ['dark', 'moon'], ['midnight', 'moods']]
-    .map(([value, icon]) => ({ value, icon, label: THEME_NAMES[value], checked: value === themeNow })));
+  const t = await UI.menu($('theme'), ['system', 'light', 'dark', 'midnight']
+    .map((value) => ({ value, swatch: value, label: THEME_NAMES[value], hint: THEME_HINTS[value], checked: value === themeNow })));
   if (!t || t === themeNow) return;
   applyTheme(t);
   api('/ui', { theme: t }).catch(() => {});

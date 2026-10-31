@@ -3,7 +3,7 @@ html, body { height: 100%; }
 body { min-height: 0; overflow: auto; user-select: none; font-size: 13px; border: 1px solid var(--line); background: var(--page); background-color: var(--bg); }
 .mhd { display: flex; align-items: center; gap: 8px; padding: 14px 14px 8px; }
 .mhd svg.logo { width: 20px; height: 20px; filter: drop-shadow(0 4px 10px rgba(14, 143, 184, 0.45)); }
-.mhd b { font: 650 14px var(--font-display); }
+.mhd .wordmark { font-size: 12.5px; }
 .mhd .hint { margin-left: auto; color: var(--faint); font-size: var(--fs-xs); text-align: right; line-height: 1.25; max-width: 140px; }
 .list { padding: 4px 10px 12px; display: flex; flex-direction: column; gap: 8px; }
 .item { background: var(--surface-1); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 10px 12px; box-shadow: var(--shadow-1);
