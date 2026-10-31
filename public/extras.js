@@ -33,14 +33,7 @@
   };
 
   // ---------- Toasts (messages in the corner) ----------
-  function toast(title, body, err) {
-    const t = document.createElement('div');
-    t.className = 'toast' + (err ? ' err' : '');
-    t.innerHTML = `<b>${esc(title)}</b>${body ? `<span>${esc(body)}</span>` : ''}`;
-    $('toasts').append(t);
-    setTimeout(() => t.classList.add('out'), 4500);
-    setTimeout(() => t.remove(), 5000);
-  }
+  const toast = (title, body, err) => UI.toast(title, body, err);
 
   // ---------- Tabs ----------
   const tabLoaders = {}; // tab -> loads its data each time it's opened
@@ -49,10 +42,16 @@
     if (!document.querySelector(`section.tab[data-tab="${name}"]`)) name = 'home';
     tab = name;
     document.querySelectorAll('section.tab').forEach((s) => { s.hidden = s.dataset.tab !== name; });
-    document.querySelectorAll('#tabs button').forEach((b) => b.classList.toggle('cur', b.dataset.tab === name));
+    document.querySelectorAll('#tabs button').forEach((b) => {
+      b.classList.toggle('cur', b.dataset.tab === name);
+      if (b.dataset.tab === name) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+    });
     try { localStorage.setItem('tab', name); } catch {}
     tabLoaders[name]?.();
+    document.dispatchEvent(new CustomEvent('tabchange', { detail: name })); // shell.js: transition, tab bar, title bar
   }
+  window.showTab = showTab;
+  window.tabLoaders = tabLoaders;
   $('tabs').onclick = (e) => { const b = e.target.closest('[data-tab]'); if (b) showTab(b.dataset.tab); };
 
   // ---------- Stop all ----------
@@ -90,7 +89,7 @@
   // ---------- Live updates (server-sent events from Amazon's push connection) ----------
   const live = document.createElement('span');
   live.className = 'live'; live.hidden = true; live.title = 'Changes from Amazon arrive instantly';
-  live.textContent = '● Live';
+  live.textContent = 'Live';
   document.querySelector('header .conn').after(live);
   let nowTimer = null;
   const refreshNowSoon = () => { clearTimeout(nowTimer); nowTimer = setTimeout(refreshNow, 600); };
@@ -233,7 +232,7 @@
     try {
       if (t.dataset.act === 'toggle') { await api('/alerts/toggle', { id, on: t.checked }); alStatus(t.checked ? 'Alarm on' : 'Alarm off'); }
       if (t.dataset.act === 'delete') {
-        if (a?.type !== 'timer' && !confirm(`Delete this ${a?.type || 'item'}${a?.label ? ` “${a.label}”` : ''}?`)) return;
+        if (a?.type !== 'timer' && !(await UI.confirm(`Delete this ${a?.type || 'item'}${a?.label ? ` “${a.label}”` : ''}?`, { ok: 'Delete', danger: true }))) return;
         await api('/alerts/delete', { id });
         alerts = alerts.filter((x) => x.id !== id);
         renderAlerts(); decorateCards();
@@ -463,7 +462,7 @@
     const sc = scenes.find((x) => x.id === b.closest('.scene').dataset.id); if (!sc) return;
     if (b.dataset.sc === 'edit') return editScene(JSON.parse(JSON.stringify(sc)));
     if (b.dataset.sc === 'delete') {
-      if (!confirm(`Delete the scene “${sc.name}”?`)) return;
+      if (!(await UI.confirm(`Delete the scene “${sc.name}”?`, { ok: 'Delete', danger: true }))) return;
       await api(`/scenes/${enc(sc.id)}/delete`, {}).catch((err) => scStatus(err.message, true));
       scenes = scenes.filter((x) => x.id !== sc.id);
       return renderScenes();
@@ -679,7 +678,7 @@
       if (b.dataset.bton) { b.disabled = true; await api('/bluetooth/connect', { device: c.dataset.serial, address: b.dataset.bton }); seStatus('Connecting…'); setTimeout(loadBluetooth, 4000); }
       if (b.hasAttribute('data-btoff')) { b.disabled = true; await api('/bluetooth/disconnect', { device: c.dataset.serial }); seStatus('Disconnected'); setTimeout(loadBluetooth, 3000); }
       if (b.id === 'phoneNewKey') {
-        if (!confirm('Make a new key? Phones using the old link stop working until they open the new one.')) return;
+        if (!(await UI.confirm('Make a new key? Phones using the old link stop working until they open the new one.', { ok: 'Make a new key' }))) return;
         renderPhone(await api('/lan', { enabled: true, newKey: true }));
       }
     } catch (err) { seStatus(err.message, true); b.disabled = false; }
@@ -774,7 +773,7 @@
       if (b.dataset.ce === 'edit') { celebEdit = { ...c }; renderCelebrations(); return $('ceName').focus(); }
       try {
         if (b.dataset.ce === 'delete') {
-          if (!confirm(`Delete ${c.name}'s ${c.type}?`)) return;
+          if (!(await UI.confirm(`Delete ${c.name}'s ${c.type}?`, { ok: 'Delete', danger: true }))) return;
           celeb = await api(`/celebrations/${enc(c.id)}/delete`, {});
           if (celebEdit?.id === c.id) celebEdit = null;
           renderCelebrations();

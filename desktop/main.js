@@ -91,8 +91,11 @@ async function api(url, body) {
 // ---------- windows ----------
 const toThemeSource = (t) => (t === 'midnight' ? 'dark' : t);
 const isDark = () => nativeTheme.shouldUseDarkColors;
-const colors = () => (server?.theme() === 'midnight' ? { bg: '#060b1f', fg: '#eaf0ff' }
-  : isDark() ? { bg: '#0f1115', fg: '#e9ecf1' } : { bg: '#f4f6f9', fg: '#151a22' });
+// The window's background and its title bar buttons, per theme (public/theme.css). System follows Windows:
+// Light, or Midnight when Windows is dark.
+const THEME_COLORS = { light: { bg: '#f3f6fb', fg: '#0f1726' }, dark: { bg: '#101318', fg: '#e9ecf1' }, midnight: { bg: '#0d1322', fg: '#e8edf7' } };
+const themeName = () => { const t = server?.theme(); return t === 'system' || !THEME_COLORS[t] ? (isDark() ? 'midnight' : 'light') : t; };
+const colors = () => THEME_COLORS[themeName()];
 
 function createMainWindow() {
   mainWin = new BrowserWindow({
@@ -100,7 +103,9 @@ function createMainWindow() {
     title: 'Echo Volume', icon: path.join(ROOT, 'build', 'icon.png'),
     backgroundColor: colors().bg, show: false,
     titleBarStyle: 'hidden',
-    titleBarOverlay: { color: colors().bg, symbolColor: colors().fg, height: 40 },
+    // Windows draws minimize / maximize / close (snap layouts, double-click to maximize, high-DPI all native);
+    // the page draws the rest of the title bar (public/index.html .titlebar)
+    titleBarOverlay: { color: '#00000000', symbolColor: colors().fg, height: 40 },
     webPreferences: { contextIsolation: true, sandbox: true },
   });
   mainWin.setMenuBarVisibility(false);
@@ -127,7 +132,7 @@ function showMain() {
 function applyWindowColors() {
   if (mainWin && !mainWin.isDestroyed()) {
     mainWin.setBackgroundColor(colors().bg);
-    mainWin.setTitleBarOverlay({ color: colors().bg, symbolColor: colors().fg });
+    mainWin.setTitleBarOverlay({ color: '#00000000', symbolColor: colors().fg });
   }
 }
 nativeTheme.on('updated', applyWindowColors);
