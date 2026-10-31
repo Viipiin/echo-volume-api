@@ -283,10 +283,15 @@ app.get('/api/music/search', wrap(async (req, res) => {
   res.json(unique);
 }));
 
-// Top songs / albums chart for the account's country (shown before the first search)
+// Top songs: a new mix on every request (see topSongs). Top albums: the chart for the account's country.
 let topCache = {};
 app.get('/api/music/top', wrap(async (req, res) => {
   const type = req.query.type === 'album' ? 'album' : 'song';
+  if (type === 'song') {
+    const items = await topSongs();
+    if (!items.length) throw httpErr(502, 'Apple Music isn\'t answering right now, try again in a minute');
+    return res.json(items);
+  }
   const hit = topCache[type];
   if (hit && Date.now() - hit.at < 60 * 60 * 1000) return res.json(hit.items);
   const url = `https://rss.marketingtools.apple.com/api/v2/${MUSIC_COUNTRY.toLowerCase()}/music/most-played/30/${type}s.json`;
@@ -528,8 +533,16 @@ async function playlistStep(dir, fadeIn) {
   }
   await playlistPlay(dev, list, next, fadeIn);
 }
+// A gap this long between checks (5s apart) means the computer slept: the Echo went its own way meanwhile,
+// so the list ends rather than starting a song the moment the laptop wakes up
+const PL_ASLEEP_MS = 60000;
 async function playlistCheck() {
   const run = plRun;
+  if (run) {
+    const gap = run.checked ? Date.now() - run.checked : 0;
+    run.checked = Date.now();
+    if (gap > PL_ASLEEP_MS) { console.log(`Queue stopped: no check for ${Math.round(gap / 1000)}s (the computer slept)`); return stopPlaylist(); }
+  }
   // Give Alexa time to start the song (longer for a podcast: it's asked by voice, and the song before can still
   // be reported meanwhile, which would be taken for the podcast and then for it moving on)
   const podcast = run && runItems(run)[run.index]?.type === 'podcast';
@@ -554,12 +567,20 @@ async function playlistCheck() {
       }
       if (!run.title) run.title = title;
       if (title !== run.title) await playlistStep(1); // it moved on to something else
-      else scheduleCrossfade(run, i.progress);
+      else {
+        if (i.progress?.mediaLength > 0) run.pos = { at: Date.now(), progress: i.progress.mediaProgress || 0, length: i.progress.mediaLength };
+        scheduleCrossfade(run, i.progress);
+      }
     } else if (i.state === 'PAUSED') { run.idle = 0; clearTimeout(fadeTimer); } // paused by someone: wait
     else {
-      // Stopped: at once when the song played to its end, otherwise after a few checks (a brief hiccup)
-      const pr = i.progress || {}, ended = pr.mediaLength > 0 && pr.mediaProgress >= pr.mediaLength - 3;
-      if (++run.idle >= (ended ? 1 : 3)) await playlistStep(1);
+      // Stopped: at once when the song played to its end, otherwise after a few checks (a brief hiccup).
+      // A song that started and was stopped well before its end ("Alexa, stop") ends the list instead.
+      const pr = i.progress || {}, last = run.pos;
+      const ended = (pr.mediaLength > 0 && pr.mediaProgress >= pr.mediaLength - 3)
+        || (last && last.progress + (Date.now() - last.at) / 1000 >= last.length - 10);
+      if (++run.idle < (ended ? 1 : 3)) return;
+      if (run.title && !ended) { console.log(`Queue stopped: "${run.title}" was stopped on the Echo`); return stopPlaylist(); }
+      await playlistStep(1); // played to its end, or never started (Alexa didn't find it): the next one
     }
   } finally { plBusy = false; }
 }
@@ -899,6 +920,57 @@ async function surpriseSongs(queued = []) {
     chartSongs().then((s) => { groups.chart = pickFresh('song', shuffle(s), 6, queued); }).catch((e) => console.log('Surprise: chart:', e.message)),
   ]);
   return pickFresh('song', interleave(groups), 40, queued); // (the same song can come from two kinds)
+}
+
+// ---------- Top songs: Hindi, English, Punjabi and Urdu across kinds, different each time ----------
+// One random artist per kind (a few of their popular songs) plus current hits from the Indian and US charts,
+// interleaved. Songs shown recently go to the back, so a refresh brings new ones while there are any.
+const TOP_ARTISTS = {
+  hindiNew: SURPRISE_ARTISTS.new, hindi2000s: SURPRISE_ARTISTS.noughties, hindi90s: SURPRISE_ARTISTS.nineties,
+  hindiClassic: SURPRISE_ARTISTS.classic,
+  hindiIndie: ['Anuv Jain', 'Prateek Kuhad', 'The Local Train', 'Lucky Ali', 'Papon', 'Ritviz', 'Kailash Kher', 'Mohit Chauhan', 'Amit Trivedi', 'Seedhe Maut', 'Divine', 'Raftaar'],
+  ghazal: ['Jagjit Singh', 'Ghulam Ali', 'Mehdi Hassan', 'Pankaj Udhas', 'Talat Aziz', 'Chitra Singh', 'Farida Khanum', 'Hariharan'],
+  punjabi: ['Diljit Dosanjh', 'AP Dhillon', 'Karan Aujla', 'Sidhu Moose Wala', 'Guru Randhawa', 'Shubh', 'Gurdas Maan', 'Jassie Gill', 'Harrdy Sandhu', 'Ammy Virk', 'B Praak', 'Satinder Sartaaj', 'Babbu Maan', 'Amrinder Gill'],
+  urdu: ['Atif Aslam', 'Ali Zafar', 'Ali Sethi', 'Hasan Raheem', 'Talha Anjum', 'Asim Azhar', 'Strings', 'Junoon', 'Sajjad Ali', 'Bilal Saeed', 'Farhan Saeed', 'Momina Mustehsan', 'Quratulain Balouch', 'Noori'],
+  sufi: ['Nusrat Fateh Ali Khan', 'Rahat Fateh Ali Khan', 'Abida Parveen', 'Shafqat Amanat Ali', 'Wadali Brothers', 'Kailash Kher', 'Sabri Brothers'],
+  englishPop: ['Taylor Swift', 'Ed Sheeran', 'Dua Lipa', 'The Weeknd', 'Bruno Mars', 'Billie Eilish', 'Ariana Grande', 'Justin Bieber', 'Harry Styles', 'Sabrina Carpenter', 'Olivia Rodrigo', 'Adele', 'Shawn Mendes', 'Charlie Puth'],
+  englishRock: ['Coldplay', 'Imagine Dragons', 'Linkin Park', 'Queen', 'Maroon 5', 'OneRepublic', 'Arctic Monkeys', 'The Beatles', 'Bon Jovi', "Guns N' Roses", 'Eagles', 'Nirvana', 'The Killers', 'Green Day'],
+  englishHipHop: ['Eminem', 'Drake', 'Kendrick Lamar', 'Post Malone', 'Travis Scott', 'Rihanna', 'Beyoncé', 'SZA', '50 Cent', 'Doja Cat', 'Chris Brown', 'Usher', 'Snoop Dogg', 'Khalid'],
+  englishDance: ['Calvin Harris', 'David Guetta', 'Avicii', 'Alan Walker', 'Martin Garrix', 'Marshmello', 'The Chainsmokers', 'Kygo', 'Daft Punk', 'Swedish House Mafia', 'Zedd', 'Clean Bandit'],
+  englishClassic: ['Michael Jackson', 'ABBA', 'Whitney Houston', 'Elton John', 'Bee Gees', 'Madonna', 'Lionel Richie', 'Celine Dion', 'Backstreet Boys', 'Phil Collins', 'George Michael', 'Bryan Adams'],
+};
+const TOP_COUNT = 30, TOP_SEEN_DAYS = 2;
+// iTunes allows ~20 requests a minute: at most this many artists not looked up yet per mix; the rest of the
+// kinds use an artist already looked up (kept for a day), so a quick second refresh doesn't get throttled
+const TOP_NEW_LOOKUPS = 8;
+async function usChartSongs() {
+  const { feed } = await cachedJson('chart:us:songs', 'https://rss.marketingtools.apple.com/api/v2/us/music/most-played/100/songs.json', 6 * 3600000);
+  return (feed?.results || []).filter((r) => !ODD_VERSION.test(r.name))
+    .map((r) => ({ type: 'song', id: r.id, title: r.name, subtitle: r.artistName, artwork: art(r.artworkUrl100), query: phrase('song', r.name, r.artistName) }));
+}
+async function topSongs() {
+  const groups = {};
+  let lookups = TOP_NEW_LOOKUPS;
+  await Promise.all([
+    ...shuffle(Object.entries(TOP_ARTISTS)).map(async ([kind, names]) => { // random order: the lookups go to different kinds
+      const order = shuffle([...names]);
+      const tries = [...order.filter((n) => !cached['artist:' + n]).slice(0, 2), ...order.filter((n) => cached['artist:' + n])];
+      for (const name of tries) {
+        if (!cached['artist:' + name]) { if (lookups <= 0) continue; lookups--; }
+        const songs = await artistSongs(name).catch((e) => { console.log(`Top songs: ${name}: ${e.message}`); return []; });
+        const picked = pickFresh('top', shuffle(songs.slice(0, 15)), 4, []);
+        if (picked.length) { groups[kind] = picked; break; }
+      }
+    }),
+    chartSongs().then((s) => { groups.chartIndia = pickFresh('top', shuffle(s), 4, []); }).catch((e) => console.log('Top songs: India chart:', e.message)),
+    usChartSongs().then((s) => { groups.chartUS = pickFresh('top', shuffle(s), 4, []); }).catch((e) => console.log('Top songs: US chart:', e.message)),
+  ]);
+  const items = pickFresh('top', interleave(groups), TOP_COUNT, []);
+  const seen = (store.surpriseSeen ||= {}).top ||= {}, now = Date.now(), old = now - TOP_SEEN_DAYS * 86400000;
+  for (const [q, at] of Object.entries(seen)) if (at < old) delete seen[q];
+  for (const it of items) seen[it.query] = now;
+  saveStore();
+  return items;
 }
 
 async function podcastPool() {

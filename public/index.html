@@ -241,8 +241,15 @@
     background:var(--card); color:var(--muted); font-size:15px; padding:0; cursor:pointer; }
   .npfav:hover { border-color:var(--accent); color:var(--accent); }
   .npfav.on { color:#e0a800; border-color:#e0a800; }
-  .mhead { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:14px 0 8px; }
+  .mhead { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; margin:14px 0 8px; }
   .mhead .mlabel { margin:0; }
+  .mtitle { display:flex; align-items:center; gap:6px; min-width:0; }
+  .mrefresh { width:26px; height:26px; border-radius:50%; border:1px solid var(--line); background:transparent; color:var(--muted);
+    font-size:14px; line-height:1; padding:0; cursor:pointer; flex:none; }
+  .mrefresh:hover:not(:disabled) { border-color:var(--accent); color:var(--accent); }
+  .mrefresh:disabled { opacity:.5; cursor:default; }
+  .mrefresh.spin { animation:mspin .8s linear infinite; }
+  @keyframes mspin { to { transform:rotate(360deg); } }
   .seg.small button { padding:5px 10px; font-size:12px; }
   .mopts { display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
   .prog { display:flex; align-items:center; gap:8px; margin-top:6px; font-variant-numeric:tabular-nums; }
@@ -440,7 +447,8 @@
       <button class="go" type="submit">Search</button>
     </form>
     <div class="mhead">
-      <div class="mlabel" id="mLabel">Top songs</div>
+      <div class="mtitle"><div class="mlabel" id="mLabel">Top songs</div>
+        <button type="button" class="mrefresh" id="mRefresh" title="New songs" aria-label="Show new songs">↻</button></div>
       <span class="seg small" id="mView">
         <button type="button" data-view="top" class="cur">Top</button>
         <button type="button" data-view="recent">Recent</button>
@@ -934,7 +942,10 @@ let mView = 'top';
 function setView(v) {
   mView = v;
   $('mView').querySelectorAll('button').forEach((x) => x.classList.toggle('cur', x.dataset.view === v));
+  $('mRefresh').hidden = v !== 'top';
 }
+// Top: a new mix of songs each time (albums, stations and podcasts are reloaded)
+$('mRefresh').onclick = () => { $('mQuery').value = ''; showList('top'); };
 async function showList(v) {
   setView(v);
   closePodcast();
@@ -958,10 +969,12 @@ async function loadTop() {
   const req = ++mReq;
   closePodcast();
   $('mTiles').innerHTML = '<div class="empty">Loading…</div>';
+  $('mRefresh').disabled = true; $('mRefresh').classList.add('spin');
   try {
     const items = await api(radio ? `/radio?limit=${$('mLimit').value}` : pod ? `/podcasts/top?limit=${Math.min(100, $('mLimit').value)}` : '/music/top?type=' + type);
-    if (req === mReq) { renderTiles(items, radio ? 'Popular stations' : pod ? 'Top podcasts' : type === 'album' ? 'Top albums' : 'Top songs'); mTopLoaded = mType; }
+    if (req === mReq) { renderTiles(items, radio ? 'Popular stations' : pod ? 'Top podcasts' : type === 'album' ? 'Top albums' : 'Top songs · Hindi, English, Punjabi, Urdu'); mTopLoaded = mType; }
   } catch (e) { if (req === mReq) { renderTiles([], 'Search to find music'); mStatus(e.message, true); } }
+  finally { if (req === mReq) { $('mRefresh').disabled = false; $('mRefresh').classList.remove('spin'); } }
 }
 
 async function search() {
