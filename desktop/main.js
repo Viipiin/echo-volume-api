@@ -69,6 +69,13 @@ function startServer() {
   };
   server.events.on('alert', (n) => notify(n, false));
   server.events.on('song', (n) => notify(n, true));
+  // Moods: a quiet note when one starts (Settings: "When a mood starts"), always one when it stops on an error.
+  // The tray's Moods menu follows what plays.
+  server.events.on('mood', (m) => {
+    if (m.event === 'start' && m.notify) notify({ title: m.name, body: `Playing on ${m.device}` }, true);
+    if (m.event === 'stop' && m.error) notify({ title: `${m.name || 'Mood'} stopped`, body: m.error }, false);
+    if (['phrase', 'start', 'stop'].includes(m.event)) refreshTrayMenu(); // 'phrase' comes first: the mood shows while it starts
+  });
   server.events.on('ready', () => {
     if (loginWin && !loginWin.isDestroyed()) loginWin.close();
     if (mainWin && !mainWin.isDestroyed()) mainWin.reload();
@@ -182,14 +189,65 @@ function createTray() {
   refreshTrayMenu();
 }
 
+// ---------- moods (tray menu and hotkeys) ----------
+async function moodMenuData() {
+  const [list, now, sugg] = await Promise.all([api('/moods'), api('/moods/now'), api('/moods/suggest')]);
+  return { ...list, now: now.active ? now : null, suggestions: sugg.suggestions || [] };
+}
+// Plays on the Echo the mood is already on, else the one the last mood played on, else the music Echo
+async function playMood(moodId) {
+  try {
+    const d = await moodMenuData().catch(() => null);
+    const device = d?.now?.serial || d?.last?.serial || undefined;
+    const name = d?.moods.find((m) => m.id === moodId)?.name || 'Mood';
+    osd(name, 'Starting…', 0);
+    const r = await api('/moods/play', { moodId, ...(device && { device }) });
+    if (!r.superseded && !r.stopped) osd(name, `Playing on ${r.device}`, 0);
+  } catch (e) { osd('Moods', e.message, 0); }
+}
+async function moodCmd(path, label) {
+  try { const r = await api(path, {}); osd(r.now?.name || r.device || 'Moods', label, 0); } catch (e) { osd('Moods', e.message, 0); }
+}
+function moodSubmenu(d) {
+  const item = (m, label = m.name) => ({ label, type: 'radio', checked: d.now?.moodId === m.id, click: () => playMood(m.id) });
+  const byId = (id) => d.moods.find((m) => m.id === id);
+  const sugg = d.suggestions.map((s) => byId(s.moodId)).filter(Boolean);
+  const favs = d.moods.filter((m) => m.favorite);
+  return [
+    ...(d.now ? [
+      { label: `${d.now.name} on ${d.now.device}`, enabled: false },
+      { label: 'Next track', accelerator: 'Ctrl+Alt+Shift+Right', click: () => musicKey('next') },
+      { label: 'New mix', click: () => moodCmd('/moods/next', 'New mix') },
+      { label: 'Stop the mood', click: () => moodCmd('/moods/stop', 'Stopped') },
+      { type: 'separator' },
+    ] : []),
+    ...(sugg.length ? [{ label: 'Suggested for now', enabled: false }, ...sugg.map((m) => item(m))] : []),
+    ...(favs.length ? [{ type: 'separator' }, { label: 'Favourites', enabled: false }, ...favs.map((m) => item(m))] : []),
+    { type: 'separator' },
+    ...d.groups.map((g) => ({ label: g.name, submenu: d.moods.filter((m) => m.group === g.id).map((m) => item(m)) })).filter((g) => g.submenu.length),
+  ];
+}
+// Ctrl+Alt+M: stop the mood playing, else play the one suggested for now
+async function moodHotkey() {
+  try {
+    const d = await moodMenuData();
+    if (d.now) return moodCmd('/moods/stop', 'Stopped');
+    const id = d.suggestions[0]?.moodId || d.last?.moodId || d.moods[0]?.id;
+    if (id) await playMood(id); else osd('Moods', 'No moods', 0);
+  } catch (e) { osd('Moods', e.message, 0); }
+}
+
 async function refreshTrayMenu() {
   if (!tray) return;
-  let echos = [];
-  try { echos = (await api('/devices')).filter((d) => d.online && !['VOX', 'REAVER', 'THIRD_PARTY_AVS_VIDEO_FIRST', 'WHA'].includes(d.family)); } catch {}
+  let echos = [], moods = null;
+  const [devR, moodR] = await Promise.allSettled([api('/devices'), moodMenuData()]);
+  if (devR.status === 'fulfilled') echos = devR.value.filter((d) => d.online && !['VOX', 'REAVER', 'THIRD_PARTY_AVS_VIDEO_FIRST', 'WHA'].includes(d.family));
+  if (moodR.status === 'fulfilled') moods = moodR.value;
   if (!settings.hotkeyDevice && echos[0]) { settings.hotkeyDevice = echos[0].serial; saveSettings(); }
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: 'Open Echo Volume', click: showMain },
     { label: 'Quick controls', click: toggleMini },
+    ...(moods ? [{ label: moods.now ? `Moods: ${moods.now.name}` : 'Moods', submenu: moodSubmenu(moods) }] : []),
     { label: 'Stop all audio', click: () => api('/stop-all', {}).then(() => osd('Echo Volume', 'Stopped everywhere', 0)).catch((e) => osd('Stop all', e.message, 0)) },
     { type: 'separator' },
     {
@@ -271,6 +329,8 @@ const HOTKEYS = [
   { keys: 'Ctrl+Alt+PageDown', label: 'TV volume down', run: () => tvStep(-2) },
   { keys: 'Ctrl+Alt+End', label: 'TV mute / unmute', run: () => tvMute() },
   { keys: 'Ctrl+Alt+E', label: 'Show / hide Echo Volume', run: () => (mainWin?.isVisible() && mainWin.isFocused() ? mainWin.hide() : showMain()) },
+  { keys: 'Ctrl+Alt+M', label: 'Mood: play the suggested one / stop', run: () => moodHotkey() },
+  { keys: 'Ctrl+Alt+Shift+Right', label: 'Echo music: next track', run: () => musicKey('next') },
 ];
 // Keyboard media keys → music on the Echo last used in the app. Opt-in (tray menu): while on, other
 // players (Spotify, browsers) no longer get these keys.

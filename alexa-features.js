@@ -87,7 +87,7 @@ module.exports = function features(ctx) {
   // ---------- Notifications: timers/alarms going off, song changes (desktop app and browser) ----------
   router.get('/notify', (_req, res) => res.json(store.notify));
   router.post('/notify', (req, res) => {
-    for (const k of ['alerts', 'songs']) if (typeof req.body?.[k] === 'boolean') store.notify[k] = req.body[k];
+    for (const k of ['alerts', 'songs', 'moods']) if (typeof req.body?.[k] === 'boolean') store.notify[k] = req.body[k];
     saveStore();
     res.json(store.notify);
   });

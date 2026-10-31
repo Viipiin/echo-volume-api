@@ -201,6 +201,12 @@ module.exports = function moodPlayer(ctx) {
       if (cur === c) { cur = null; stopPlaylist(dev.serialNumber, 'error'); }
       throw httpErr(502, `Couldn't start "${m.name}" on ${dev.accountName}: ${e.message || e}`);
     }
+    // Stopped while Amazon held the play command (its "rate exceeded" retry can take ~50 s): the music starts anyway
+    // when the retry lands, so pause it again. Replaced by another mood: that one's own play follows, nothing to do.
+    if (cur !== c) {
+      if (!cur) await p((cb) => alexa.sendCommand(dev.serialNumber, 'pause', null, cb)).catch(() => {});
+      return { stopped: true, device: dev.accountName, moodId: m.id };
+    }
     c.sleepAt = setSleep(dev, opts.sleepMinutes || 0);
     s.last = { moodId: m.id, serial: dev.serialNumber, opts, at: Date.now() };
     saveStore();
@@ -215,6 +221,7 @@ module.exports = function moodPlayer(ctx) {
     return { device: c.device, playing: cur?.item?.query || null, now: now() };
   }
   async function stop(pause = true) {
+    gen++; // a start still waiting on the volume step gives up before playing
     const c = cur;
     if (!c) return { stopped: false };
     stopPlaylist(c.serial, 'stopped');

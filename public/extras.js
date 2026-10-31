@@ -639,6 +639,7 @@
       <div class="card xcard"><div class="top"><span class="name">Notifications</span></div>
         <label class="toggle setrow"><span>When a timer or alarm goes off</span><span class="switch"><input type="checkbox" data-notify="alerts" /><span></span></span></label>
         <label class="toggle setrow"><span>When the song changes (Echo music is playing on)</span><span class="switch"><input type="checkbox" data-notify="songs" /><span></span></span></label>
+        <label class="toggle setrow"><span>When a mood starts (a mood that stops on a problem always says so)</span><span class="switch"><input type="checkbox" data-notify="moods" /><span></span></span></label>
         <p class="kind">${isApp ? 'Shown as Windows notifications.' : 'Shown in this page, and as browser notifications while it is in the background.'}</p>
         ${!isApp && 'Notification' in window && Notification.permission !== 'granted' ? '<button id="nfAllow">Allow browser notifications</button>' : ''}</div>
       <div class="card xcard" id="phoneCard"><div class="top"><span class="name">Phone access</span></div><div id="phoneBody"><span class="kind">Loading…</span></div></div>`;

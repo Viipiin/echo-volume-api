@@ -192,7 +192,7 @@
       }, 4000);
       try {
         const r = await api('/moods/play', req);
-        if (r.superseded) { sh.close(); return; }
+        if (r.superseded || r.stopped) { sh.close(); return; } // replaced by another play, or stopped before it started
         S.now = r.now; S.data.last = { moodId: m.id, opts: r.now.opts };
         sh.close(); renderNow(); ambience();
         if ($('mDevice') && [...$('mDevice').options].some((x) => x.value === req.device)) $('mDevice').value = req.device; // the music card follows
