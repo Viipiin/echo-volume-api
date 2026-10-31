@@ -247,3 +247,59 @@ input[type=range] { width:100%; accent-color:var(--accent); height:28px; cursor:
 .tv .dpad button { padding:0; font-size:13px; }
 .dpad .up { grid-area:1/2; } .dpad .left { grid-area:2/1; } .dpad .ok { grid-area:2/2; } .dpad .right { grid-area:2/3; } .dpad .down { grid-area:3/2; }
 .keys { display:flex; flex-wrap:wrap; gap:6px; }
+/* ---------- Moods ---------- */
+.moods-head { display: flex; align-items: flex-end; gap: var(--sp-3); flex-wrap: wrap; margin-bottom: var(--sp-5); }
+.moods-head h2 { font-size: var(--fs-xl); margin-bottom: 2px; }
+.field.inline { flex-direction: row; align-items: center; gap: 8px; }
+.field.inline select { min-width: 150px; }
+.mood-editbar { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; padding: var(--sp-3) var(--sp-4); margin-bottom: var(--sp-5); }
+.mood-sec { margin-bottom: var(--sp-6); }
+.mood-sec > .label { margin-bottom: var(--sp-3); }
+.mood-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); gap: var(--sp-3); }
+.mood-cell { position: relative; display: flex; }
+.mood-cell .mood-tile { flex: 1; padding-right: 44px; }
+.mood-fav, .mood-tools { position: absolute; top: 8px; right: 8px; }
+.mood-tools { display: flex; gap: 4px; }
+.mood-fav.on { color: #f5b800; }
+.mood-tile .meta .badge { height: 20px; font-size: 11px; }
+.mood-tile .eqbars { color: var(--a); margin-left: auto; }
+/* The mood playing: tinted by its colours */
+.mood-now { position: relative; overflow: hidden; isolation: isolate; display: flex; align-items: center; gap: var(--sp-4); flex-wrap: wrap; margin-bottom: var(--sp-6);
+  border-color: color-mix(in srgb, var(--a, var(--accent)) 45%, transparent); box-shadow: 0 18px 44px -20px var(--a, var(--accent)); }
+.mood-now::before { content: ""; position: absolute; inset: 0; z-index: -1; opacity: 0.28; background: linear-gradient(120deg, var(--a, var(--accent)), var(--b, var(--accent-2))); }
+.mn-em { font-size: 40px; line-height: 1; filter: drop-shadow(0 6px 16px var(--a)); }
+.mn-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 220px; }
+.mn-meta b { font: 650 var(--fs-xl) var(--font-display); }
+.mn-meta > span { overflow: hidden; text-overflow: ellipsis; }
+.mn-sleep { color: var(--muted); display: inline-flex; gap: 4px; align-items: center; }
+.mood-now > .eqbars { color: var(--a); height: 22px; }
+.mood-now > .eqbars i { width: 4px; }
+.mn-ctl { display: flex; gap: var(--sp-2); flex-wrap: wrap; }
+/* Play and edit sheets */
+.mood-form { display: flex; flex-direction: column; gap: var(--sp-4); }
+.mf-row { display: flex; flex-direction: column; gap: var(--sp-2); }
+.mf-row .label { display: flex; justify-content: space-between; }
+.mf-val { color: var(--accent); text-transform: none; letter-spacing: 0; font-size: 13px; }
+.mf-row .setrow { border: 0; padding: 0; }
+.mf-hint { display: flex; gap: 6px; align-items: flex-start; }
+.mf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: var(--sp-3); }
+.mf-wide { grid-column: 1 / -1; }
+.mf-grid input[type=color] { padding: 2px 4px; height: 38px; }
+.mf-ph { margin-top: var(--sp-2); }
+.mf-p, .mf-h { margin-top: var(--sp-3); }
+.freq-list { display: grid; gap: 6px; margin-top: var(--sp-2); }
+.freq { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid var(--line); }
+.freq b { min-width: 110px; }
+@media (max-width: 640px) {
+  .mood-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  .moods-head .field.inline { flex: 1 1 100%; }
+  .moods-head .field.inline select { flex: 1; }
+  .mn-ctl { flex-basis: 100%; }
+  .mn-ctl .btn { flex: 1; }
+}
+@media (pointer: coarse), (max-width: 760px) { /* 44px touch targets */
+  .mood-fav, .mood-tools .btn { width: var(--touch); height: var(--touch); }
+  .mood-fav, .mood-tools { top: 2px; right: 2px; }
+  .mood-cell .mood-tile { padding-right: 48px; }
+  .mood-form .chip { height: var(--touch); }
+}
