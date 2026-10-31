@@ -1057,7 +1057,9 @@ const TOP_ARTISTS = {
   englishDance: ['Calvin Harris', 'David Guetta', 'Avicii', 'Alan Walker', 'Martin Garrix', 'Marshmello', 'The Chainsmokers', 'Kygo', 'Daft Punk', 'Swedish House Mafia', 'Zedd', 'Clean Bandit'],
   englishClassic: ['Michael Jackson', 'ABBA', 'Whitney Houston', 'Elton John', 'Bee Gees', 'Madonna', 'Lionel Richie', 'Celine Dion', 'Backstreet Boys', 'Phil Collins', 'George Michael', 'Bryan Adams'],
 };
-const TOP_COUNT = 30, TOP_SEEN_DAYS = 2, TOP_SEEN_MAX = 400;
+// TOP_COUNT songs per mix, topped up from the charts when the artists come up short. 120 fills whole rows at 2-6, 8,
+// 10 or 12 columns, and the page hides a part-filled last row, so at least 100 always show.
+const TOP_COUNT = 120, TOP_PER_KIND = 2, TOP_PER_ARTIST = 4, TOP_PER_CHART = 8, TOP_SEEN_DAYS = 2, TOP_SEEN_MAX = 600;
 // A mix is put together from what's ready after this long (cached artists answer at once); it waits longer only
 // when that's too little to show, e.g. the very first time, before anything is cached
 const TOP_DEADLINE_MS = 2500, TOP_MIN_ITEMS = 12;
@@ -1065,27 +1067,34 @@ const TOP_DEADLINE_MS = 2500, TOP_MIN_ITEMS = 12;
 const TOP_NEW_LOOKUPS = 2;
 const usChartSongs = () => chartFeed('chart:us:songs', 'https://rss.marketingtools.apple.com/api/v2/us/music/most-played/100/songs.json', (r) => !ODD_VERSION.test(r.name));
 async function buildTop() {
-  const groups = {};
+  const groups = {}, charts = {};
   let lookups = itunesBusy() ? 0 : TOP_NEW_LOOKUPS;
   const work = Promise.all([
     ...shuffle(Object.entries(TOP_ARTISTS)).map(async ([kind, names]) => { // random order: the lookups go to different kinds
       const order = shuffle([...names]);
       const has = (n) => catalogHas('artist:' + n);
       const tries = [...order.filter(has), ...order.filter((n) => !has(n) && !(catalogFailed['artist:' + n] > Date.now())).slice(0, 1)];
-      for (const name of tries) {
+      const byArtist = {};
+      for (const name of tries) { // TOP_PER_KIND artists, a few popular songs each, taking turns
         if (!has(name)) { if (lookups <= 0) continue; lookups--; }
         const songs = has(name) ? catalog['artist:' + name].value // a week-old list is still a fine mix
           : await artistSongs(name).catch((e) => { console.log(`Top songs: ${name}: ${e.message}`); return []; });
-        const picked = pickFresh('top', shuffle(songs.slice(0, 15)), 4, []);
-        if (picked.length) { groups[kind] = picked; break; }
+        const picked = pickFresh('top', shuffle(songs.slice(0, 15)), TOP_PER_ARTIST, []);
+        if (picked.length) { byArtist[name] = picked; groups[kind] = interleave(byArtist); }
+        if (Object.keys(byArtist).length >= TOP_PER_KIND) break;
       }
     }),
-    chartSongs().then((s) => { groups.chartIndia = pickFresh('top', shuffle(s), 4, []); }).catch((e) => console.log('Top songs: India chart:', e.message)),
-    usChartSongs().then((s) => { groups.chartUS = pickFresh('top', shuffle(s), 4, []); }).catch((e) => console.log('Top songs: US chart:', e.message)),
+    chartSongs().then((s) => { charts.india = s; groups.chartIndia = pickFresh('top', shuffle(s), TOP_PER_CHART, []); }).catch((e) => console.log('Top songs: India chart:', e.message)),
+    usChartSongs().then((s) => { charts.us = s; groups.chartUS = pickFresh('top', shuffle(s), TOP_PER_CHART, []); }).catch((e) => console.log('Top songs: US chart:', e.message)),
   ]);
   await Promise.race([work, wait(TOP_DEADLINE_MS)]);
   let items = pickFresh('top', interleave(groups), TOP_COUNT, []);
   if (items.length < TOP_MIN_ITEMS) { await work; items = pickFresh('top', interleave(groups), TOP_COUNT, []); }
+  // Short of TOP_COUNT (artists not cached yet): more current hits from both charts fill it up
+  if (items.length < TOP_COUNT) {
+    const more = pickFresh('top', interleave({ a: shuffle([...(charts.india || [])]), b: shuffle([...(charts.us || [])]) }), TOP_COUNT, items);
+    items = items.concat(more.slice(0, TOP_COUNT - items.length));
+  }
   return items;
 }
 // The next mix is built in the background as soon as one is shown, so the Refresh button gets it at once

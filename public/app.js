@@ -407,8 +407,21 @@ $('mMove').onchange = async () => {
   finally { $('mMove').disabled = false; fillMove(); }
 };
 
-function renderTiles(items, label, empty = 'No results.') {
+// Top songs fill every row of the grid: a part-filled last row is hidden, and counted again when the width
+// (so the number of columns) changes
+function fullRows() {
+  const box = $('mTiles'), tiles = [...box.children].filter((el) => el.classList.contains('tw'));
+  tiles.forEach((t) => { t.hidden = false; });
+  if (box.dataset.full !== '1' || !tiles.length) return;
+  const cols = getComputedStyle(box).gridTemplateColumns.split(' ').filter(Boolean).length || 1;
+  tiles.slice(Math.max(cols, tiles.length - (tiles.length % cols))).forEach((t) => { t.hidden = true; });
+}
+let tilesWidth = 0;
+new ResizeObserver(([e]) => { if (Math.round(e.contentRect.width) !== tilesWidth) { tilesWidth = Math.round(e.contentRect.width); fullRows(); } }).observe($('mTiles'));
+
+function renderTiles(items, label, empty = 'No results.', full = false) {
   mItems = items;
+  $('mTiles').dataset.full = full ? '1' : '';
   $('mLabel').textContent = label;
   const playingAt = plOpen && plPlaying?.list === plOpen.id ? plPlaying.index : -1;
   $('mTiles').innerHTML = items.length ? items.map((it, i) => `
@@ -491,7 +504,10 @@ async function loadTop() {
   $('mRefresh').disabled = true; $('mRefresh').classList.add('spin');
   try {
     const items = await api(radio ? `/radio?limit=${$('mLimit').value}` : pod ? `/podcasts/top?limit=${Math.min(100, $('mLimit').value)}` : '/music/top?type=' + type);
-    if (req === mReq) { renderTiles(items, radio ? 'Popular stations' : pod ? 'Top podcasts' : type === 'album' ? 'Top albums' : 'Top songs · Hindi, English, Punjabi, Urdu'); mTopLoaded = mType; }
+    if (req === mReq) {
+      renderTiles(items, radio ? 'Popular stations' : pod ? 'Top podcasts' : type === 'album' ? 'Top albums' : 'Top songs · Hindi, English, Punjabi, Urdu', undefined, type === 'song' && !radio && !pod);
+      fullRows(); mTopLoaded = mType;
+    }
   } catch (e) { if (req === mReq) { renderTiles([], 'Search to find music'); mStatus(e.message, true); } }
   finally { if (req === mReq) { $('mRefresh').disabled = false; $('mRefresh').classList.remove('spin'); $('mTiles').classList.remove('stale'); } }
 }
