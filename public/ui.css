@@ -153,6 +153,14 @@ input[type=range]:disabled { opacity: 0.45; cursor: default; }
 
 /* Checkbox (installer style) */
 .check { display: inline-flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+/* Every plain checkbox gets the same look (the switch hides its own input) */
+input[type=checkbox]:not(.switch input) { appearance: none; flex: none; width: 18px; height: 18px; margin: 0; border-radius: var(--r-xs); border: 1.5px solid var(--line-2); background: var(--field);
+  display: inline-grid; place-items: center; vertical-align: middle; cursor: pointer; transition: background 140ms, border-color 140ms; }
+input[type=checkbox]:not(.switch input)::after { content: ""; width: 9px; height: 5px; border: 2px solid var(--accent-ink); border-top: 0; border-right: 0; transform: rotate(-45deg) scale(0); margin-top: -2px; transition: transform var(--d-fast) var(--ease); }
+input[type=checkbox]:not(.switch input):checked { background: var(--accent); border-color: var(--accent); }
+input[type=checkbox]:not(.switch input):checked::after { transform: rotate(-45deg) scale(1); }
+input[type=checkbox]:not(.switch input):hover { border-color: var(--accent-line); }
+input[type=checkbox]:not(.switch input):disabled { opacity: 0.5; cursor: default; }
 .check input { appearance: none; flex: none; width: 18px; height: 18px; margin: 1px 0 0; border-radius: var(--r-xs); border: 1.5px solid var(--line-2); background: var(--field);
   display: grid; place-items: center; cursor: pointer; transition: background 140ms, border-color 140ms; }
 .check input::after { content: ""; width: 9px; height: 5px; border: 2px solid var(--accent-ink); border-top: 0; border-right: 0; transform: rotate(-45deg) scale(0); margin-top: -2px; transition: transform var(--d-fast) var(--ease); }

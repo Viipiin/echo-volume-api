@@ -118,8 +118,12 @@
   }
 
   // ---------- live ----------
+  // The play sheet waiting on /moods/play. The SSE 'start' can arrive long before the reply (an Amazon rate-limit
+  // retry holds the request ~45 s), so the sheet closes on whichever comes first.
+  let pendingPlay = null;
   window.onMoodEvent = (d) => {
     S.now = d.active ? d : null;
+    if (d.event === 'start' && d.active && pendingPlay?.moodId === d.moodId && pendingPlay.serial === d.serial) { pendingPlay.close(); pendingPlay = null; }
     if (d.event === 'start' && d.active) UI.toast(d.name, `Playing on ${d.device}`);
     if (d.event === 'stop' && d.error) UI.toast(`${d.name || 'Mood'} stopped`, d.error, true);
     renderNow(); ambience();
@@ -177,14 +181,16 @@
       };
       const btn = body.querySelector('#mfPlay');
       btn.classList.add('busy'); btn.disabled = true;
+      pendingPlay = { moodId: m.id, serial: req.device, close: () => sh.close() };
       try {
         const r = await api('/moods/play', req);
-        if (r.superseded) return;
+        if (r.superseded) { sh.close(); return; }
         S.now = r.now; S.data.last = { moodId: m.id, opts: r.now.opts };
         sh.close(); renderNow(); ambience();
         if ($('mDevice') && [...$('mDevice').options].some((x) => x.value === req.device)) $('mDevice').value = req.device; // the music card follows
         setTimeout(refreshNow, 4000);
       } catch (err) { UI.toast(`Couldn't start ${m.name}`, err.message, true); btn.classList.remove('busy'); btn.disabled = false; }
+      finally { if (pendingPlay?.moodId === m.id) pendingPlay = null; }
     };
   }
 

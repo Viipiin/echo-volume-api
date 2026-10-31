@@ -4,7 +4,7 @@
 (() => {
   const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const icon = (name, cls = '') => `<svg class="i ${cls}" aria-hidden="true"><use href="/icons.svg#${name}"/></svg>`;
+  const icon = (name, cls = '') => `<svg class="i ${cls}" aria-hidden="true"><use href="/icons.svg#${esc(name)}"/></svg>`;
 
   // ---------- range sliders: the filled part of the track follows the value (also when code sets .value) ----------
   function fill(el) {

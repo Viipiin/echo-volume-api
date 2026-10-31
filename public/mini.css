@@ -1,0 +1,38 @@
+/* Echo Volume: the tray's quick controls window (340 x 460, frameless). Tokens from theme.css, components from ui.css. */
+html, body { height: 100%; }
+body { min-height: 0; overflow: auto; user-select: none; font-size: 13px; border: 1px solid var(--line); background: var(--page); background-color: var(--bg); }
+.mhd { display: flex; align-items: center; gap: 8px; padding: 14px 14px 8px; }
+.mhd svg.logo { width: 20px; height: 20px; filter: drop-shadow(0 4px 10px rgba(14, 143, 184, 0.45)); }
+.mhd b { font: 650 14px var(--font-display); }
+.mhd .hint { margin-left: auto; color: var(--faint); font-size: var(--fs-xs); text-align: right; line-height: 1.25; max-width: 140px; }
+.list { padding: 4px 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.item { background: var(--surface-1); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 10px 12px; box-shadow: var(--shadow-1);
+  backdrop-filter: var(--glass); -webkit-backdrop-filter: var(--glass); }
+.skel-item { min-height: 72px; }
+.top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sub { color: var(--muted); font-size: var(--fs-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.val { font: 650 16px var(--font-display); color: var(--accent); font-variant-numeric: tabular-nums; text-shadow: 0 0 14px color-mix(in srgb, var(--accent) 40%, transparent); }
+.val.muted { color: var(--muted); text-shadow: none; }
+.row { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.row input[type=range] { flex: 1; }
+.row .btn { min-width: 72px; }
+.err { color: var(--danger); font-size: var(--fs-sm); }
+.err:empty { display: none; }
+.item.off .row { opacity: 0.4; pointer-events: none; }
+.empty { padding: var(--sp-6) var(--sp-3); }
+
+/* Now playing (tinted by the mood's colours while one plays) */
+.music { position: relative; overflow: hidden; isolation: isolate; display: flex; align-items: center; gap: 10px;
+  background: var(--accent-tint); border-color: var(--accent-line); }
+.music.mood { border-color: color-mix(in srgb, var(--a) 45%, transparent); background: var(--surface-1); }
+.music.mood::before { content: ""; position: absolute; inset: 0; z-index: -1; opacity: 0.25; background: linear-gradient(120deg, var(--a), var(--b)); }
+.music img, .music .ph { width: 44px; height: 44px; border-radius: var(--r-sm); object-fit: cover; flex: none; background: var(--surface-3);
+  box-shadow: 0 8px 20px -8px color-mix(in srgb, var(--accent) 60%, transparent); }
+.music .ph { display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, var(--a, var(--accent)), var(--b, var(--accent-2))); }
+.music .meta { flex: 1; min-width: 0; }
+.music .mtag { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-xs); font-weight: 600; color: color-mix(in srgb, var(--a, var(--accent)) 70%, var(--text)); }
+.music .mtag svg.i { width: 12px; height: 12px; }
+.music .ctl { display: flex; gap: 4px; flex: none; }
+.music .ctl .btn { width: 32px; height: 32px; }
+.music .ctl .btn.primary { width: 36px; height: 36px; }

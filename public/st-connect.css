@@ -1,0 +1,16 @@
+/* Echo Volume: the Connect SmartThings page (smartthings.html). Tokens from theme.css, components from ui.css. */
+body { padding: var(--sp-7) var(--sp-4); }
+.card.st { max-width: 560px; margin: 0 auto; padding: var(--sp-6); }
+.st-head { display: flex; gap: var(--sp-4); align-items: flex-start; margin-bottom: var(--sp-4); }
+.st-head h1 { font-size: var(--fs-xl); margin-bottom: 4px; }
+.st-ico { display: grid; place-items: center; width: 48px; height: 48px; flex: none; border-radius: 14px; color: var(--accent-ink);
+  background: var(--btn-primary); box-shadow: var(--glow); }
+.st-steps { padding-left: 20px; margin: 0 0 var(--sp-4); color: var(--muted); line-height: 1.6; }
+.st-steps li + li { margin-top: 6px; }
+.st-steps b { color: var(--text); }
+.card.st p { margin-bottom: var(--sp-3); }
+.card.st textarea { width: 100%; font: 13px ui-monospace, "Cascadia Mono", Consolas, monospace; margin-bottom: var(--sp-3); }
+.status.ok { color: var(--ok); }
+.st-back { display: inline-flex; align-items: center; gap: 4px; text-decoration: none; font-weight: 600; margin-top: var(--sp-2); }
+.st-back:hover { text-decoration: underline; }
+@media (max-width: 480px) { .card.st { padding: var(--sp-5) var(--sp-4); } }

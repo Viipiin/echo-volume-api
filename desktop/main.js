@@ -93,7 +93,7 @@ const toThemeSource = (t) => (t === 'midnight' ? 'dark' : t);
 const isDark = () => nativeTheme.shouldUseDarkColors;
 // The window's background and its title bar buttons, per theme (public/theme.css). System follows Windows:
 // Light, or Midnight when Windows is dark.
-const THEME_COLORS = { light: { bg: '#f3f6fb', fg: '#0f1726' }, dark: { bg: '#101318', fg: '#e9ecf1' }, midnight: { bg: '#0d1322', fg: '#e8edf7' } };
+const THEME_COLORS = { light: { bg: '#f3f6fb', fg: '#0f1726' }, dark: { bg: '#101318', fg: '#e9ecf1' }, midnight: { bg: '#0b0f1a', fg: '#e8edf7' } };
 const themeName = () => { const t = server?.theme(); return t === 'system' || !THEME_COLORS[t] ? (isDark() ? 'midnight' : 'light') : t; };
 const colors = () => THEME_COLORS[themeName()];
 
@@ -256,7 +256,7 @@ function osd(title, value, max) {
   }
   const wa = screen.getPrimaryDisplay().workArea;
   osdWin.setPosition(Math.round(wa.x + wa.width / 2 - 150), wa.y + wa.height - 76 - 48);
-  const run = () => osdWin.webContents.executeJavaScript(`show(${JSON.stringify(title)}, ${JSON.stringify(value)}, ${max}, ${isDark()})`).then(() => osdWin.showInactive());
+  const run = () => osdWin.webContents.executeJavaScript(`show(${JSON.stringify(title)}, ${JSON.stringify(value)}, ${max}, ${JSON.stringify(themeName())})`).then(() => osdWin.showInactive());
   if (osdWin.webContents.isLoading()) osdWin.webContents.once('did-finish-load', run); else run();
   clearTimeout(osd.t);
   osd.t = setTimeout(() => osdWin?.hide(), 1400);

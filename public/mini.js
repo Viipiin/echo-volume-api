@@ -1,0 +1,109 @@
+// Echo Volume: the tray's quick controls (mini.html). Music on the Echo last used, the TV (SmartThings) and each Echo.
+const $ = (id) => document.getElementById(id);
+const key = new URLSearchParams(location.search).get('key') || '';
+const api = (url, body) => fetch('/api' + url, {
+  method: body ? 'POST' : 'GET',
+  headers: { 'Content-Type': 'application/json', ...(key && { 'x-api-key': key }) },
+  body: body && JSON.stringify(body),
+}).then(async (r) => { const j = await r.json(); if (!r.ok) throw new Error(j.error); return j; });
+const { esc, icon } = window.UI;
+const isMain = (d) => d.online && !['VOX', 'REAVER', 'THIRD_PARTY_AVS_VIDEO_FIRST', 'WHA'].includes(d.family);
+const timers = {};
+const debounce = (k, fn, ms = 200) => { clearTimeout(timers[k]); timers[k] = setTimeout(fn, ms); };
+
+function item(id, name, sub, max) {
+  return `<div class="item" data-id="${esc(id)}">
+    <div class="top"><span class="name">${esc(name)}</span><span class="val" data-el="val">–</span></div>
+    ${sub ? `<div class="sub" data-el="sub">${esc(sub)}</div>` : ''}
+    <div class="row"><input type="range" min="0" max="${max}" step="1" data-el="slider" aria-label="${esc(name)} volume" />
+      <button type="button" class="btn sm" data-el="mute">Mute</button></div>
+    <div class="err" data-el="err"></div></div>`;
+}
+const part = (id, el) => document.querySelector(`.item[data-id="${CSS.escape(id)}"] [data-el="${el}"]`);
+function show(id, v, max, muted) {
+  part(id, 'val').textContent = muted ? 'Muted' : max === 10 ? `${v ?? '–'} / 10` : (v ?? '–');
+  part(id, 'val').classList.toggle('muted', !!muted);
+  if (v != null) part(id, 'slider').value = v;
+  part(id, 'mute').textContent = muted ? 'Unmute' : 'Mute';
+  part(id, 'mute').classList.toggle('on', !!muted);
+}
+const err = (id, m) => { const e = part(id, 'err'); if (e) e.textContent = m || ''; };
+
+// Same theme as the main window (saved on the server); "system" leaves data-theme off so it follows Windows
+api('/ui').then((s) => { if (['light', 'dark', 'midnight'].includes(s.theme)) document.documentElement.dataset.theme = s.theme; }).catch(() => {});
+
+// Music on the Echo last used in the app (the server remembers it); a mood playing tints the card
+let playing = false;
+function musicItem(n) {
+  const m = n.mood;
+  const art = n.artwork ? `<img src="${esc(n.artwork)}" alt="" />` : `<div class="ph">${m ? icon(m.icon || 'moods') : icon('music')}</div>`;
+  return `<div class="item music${m ? ' mood' : ''}" data-id="music">
+    ${art}
+    <div class="meta">${m ? `<span class="mtag">${icon(m.icon || 'moods')}${esc(m.name)}</span>` : ''}
+      <div class="name">${esc(n.title)}</div><div class="sub">${esc([n.artist, n.device].filter(Boolean).join(' · '))}</div></div>
+    <div class="ctl">
+      <button type="button" class="btn icon round sm" data-m="previous" aria-label="Previous">${icon('prev', 'sm')}</button>
+      <button type="button" class="btn icon round primary" data-m="toggle" aria-label="Play or pause">${icon(n.state === 'PLAYING' ? 'pause' : 'play', 'sm')}</button>
+      <button type="button" class="btn icon round sm" data-m="next" aria-label="Next">${icon('next', 'sm')}</button>
+    </div></div>`;
+}
+
+const state = {};
+async function load() {
+  const html = [];
+  let echos = [], now = null;
+  // All three at once (each takes ~1s)
+  const [nowR, devR, tvR] = await Promise.allSettled([
+    api('/music/now'), api('/devices'),
+    api('/st/auth/status').then((s) => (s.connected ? api('/st/tv?fast=1') : null)),
+  ]);
+  if (nowR.value?.title) { now = nowR.value; playing = now.state === 'PLAYING'; html.push(musicItem(now)); }
+  if (devR.status === 'fulfilled') echos = devR.value.filter(isMain).sort((a, b) => (a.family === 'KNIGHT' ? -1 : 1) - (b.family === 'KNIGHT' ? -1 : 1));
+  else html.push(`<div class="empty">${esc(devR.reason.message)}</div>`);
+  const tv = tvR.value || null;
+  if (tv) html.push(item('tv', tv.name || 'TV', tv.power === 'on' ? (tv.nowPlaying?.label || 'On') : 'Off', 100));
+  for (const d of echos) html.push(item(d.serial, d.name, '', 10));
+  $('list').innerHTML = html.join('') || '<div class="empty">No devices</div>';
+  // Mood colours go on through CSSOM (the CSP blocks style attributes)
+  const acc = now?.mood?.accent, card = document.querySelector('.music');
+  if (card && Array.isArray(acc)) { card.style.setProperty('--a', acc[0]); card.style.setProperty('--b', acc[1] || acc[0]); }
+  if (tv) {
+    state.tv = { v: tv.volume, muted: tv.muted }; show('tv', tv.volume, 100, tv.muted);
+    document.querySelector('.item[data-id="tv"]').classList.toggle('off', tv.power !== 'on'); // volume only works while on
+  }
+  for (const d of echos) {
+    api('/volume?device=' + encodeURIComponent(d.serial))
+      .then((r) => { const s = r.volume == null ? null : Math.round(r.volume / 10); state[d.serial] = { v: s, muted: false }; show(d.serial, s, 10, false); })
+      .catch((e) => err(d.serial, e.message));
+  }
+}
+
+$('list').addEventListener('input', (e) => {
+  if (e.target.dataset.el !== 'slider') return;
+  const id = e.target.closest('.item').dataset.id, v = +e.target.value, isTv = id === 'tv';
+  state[id] = { v, muted: false };
+  show(id, v, isTv ? 100 : 10, false);
+  debounce(id, () => (isTv ? api('/st/tv/volume', { level: v }) : api('/volume', { device: id, level: v * 10 })).then(() => err(id)).catch((x) => err(id, x.message)));
+});
+$('list').addEventListener('click', async (e) => {
+  const m = e.target.closest('[data-m]');
+  if (m) {
+    let cmd = m.dataset.m;
+    if (cmd === 'toggle') { cmd = playing ? 'pause' : 'play'; playing = !playing; m.innerHTML = icon(playing ? 'pause' : 'play', 'sm'); }
+    try { await api('/music/' + cmd, {}); if (cmd === 'next' || cmd === 'previous') setTimeout(load, 2500); }
+    catch (x) { m.closest('.item').querySelector('.sub').textContent = x.message; }
+    return;
+  }
+  const b = e.target.closest('[data-el="mute"]');
+  if (!b) return;
+  const id = b.closest('.item').dataset.id, isTv = id === 'tv', s = state[id] || {};
+  const mute = !s.muted;
+  state[id] = { ...s, muted: mute };
+  show(id, s.v, isTv ? 100 : 10, mute);
+  try {
+    if (isTv) await api(mute ? '/st/tv/mute' : '/st/tv/unmute', {});
+    else { const r = await api(mute ? '/mute' : '/unmute', { device: id }); if (!mute) { state[id].v = Math.round(r.volume / 10); show(id, state[id].v, 10, false); } }
+    err(id);
+  } catch (x) { err(id, x.message); }
+});
+load();

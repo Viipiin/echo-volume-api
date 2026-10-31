@@ -337,7 +337,7 @@
   }
   const stepRow = (s) => `<div class="step" data-type="${s.type}"><b>${esc(STEPS[s.type][0])}</b>
     <span class="fields">${STEPS[s.type][1].map((f) => field(f, s)).join('')}</span>
-    <span class="sbtn"><button type="button" data-mv="-1" aria-label="Move up">${UI.icon('arrow-up', 'sm')}</button><button type="button" data-mv="1" aria-label="Move down">${UI.icon('arrow-down', 'sm')}</button><button type="button" data-rm aria-label="Remove step">${UI.icon('close', 'sm')}</button></span></div>`;
+    <span class="stepbtns"><button type="button" data-mv="-1" aria-label="Move up">${UI.icon('arrow-up', 'sm')}</button><button type="button" data-mv="1" aria-label="Move down">${UI.icon('arrow-down', 'sm')}</button><button type="button" data-rm aria-label="Remove step">${UI.icon('close', 'sm')}</button></span></div>`;
   function readStep(row) {
     const s = { type: row.dataset.type };
     row.querySelectorAll('[data-f]').forEach((f) => {
