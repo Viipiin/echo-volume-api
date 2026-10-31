@@ -1,45 +1,131 @@
-/* Echo Volume: colour themes, shared by every page (index, mini, smartthings).
-   Theme = data-theme on <html>: none (follows the system), "light", "dark" or "midnight".
-   --bg-art is the page background (a gradient for midnight), --card-solid is for popups and dropdowns,
-   which can't be see-through. */
+/* Echo Volume: design tokens, shared by every page (index, mini, smartthings, style guide) and matched by the
+   desktop OSD. The look is the installer's (installer/renderer/styles.css): a deep navy base, one cyan accent with a
+   soft glow, glassy surfaces, Segoe UI Variable, an ease-out curve.
+
+   Theme = data-theme on <html> (or on any element, for the style guide):
+     none        follows the system: Light by day, Midnight when Windows is dark
+     "light"     derived from the installer tokens for light backgrounds (accent darkened to pass AA as text)
+     "dark"      neutral graphite with the same accent
+     "midnight"  the installer exactly (the default for new installs)
+   Mood ambience: --mood-a / --mood-b are set on <html> while a mood plays (moods-ui.js). */
+
+/* ---------- shared: type, shape, spacing, motion ---------- */
 :root {
-  --bg:#f4f6f9; --card:#ffffff; --card-solid:#ffffff; --line:#e3e7ee; --text:#151a22; --muted:#6b7584;
-  --accent:#0e8fb8; --accent-soft:#e3f3f9; --track:#e3e7ee; --danger:#c2412d; --ok:#1f9d55;
-  --shadow:0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.06);
-  --bg-art:var(--bg); --nav-cur:var(--accent-soft); --nav-cur-text:var(--accent);
+  --font: "Segoe UI Variable Text", "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Segoe UI Variable Display", var(--font);
+  --fs-xs: 11px; --fs-sm: 12px; --fs-md: 14px; --fs-lg: 16px; --fs-xl: 20px; --fs-2xl: 24px; --fs-3xl: 34px;
+  --r-xs: 5px; --r-sm: 8px; --r-md: 10px; --r-lg: 14px; --r-xl: 20px; --r-pill: 999px;
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px; --sp-7: 32px; --sp-8: 40px; --sp-9: 48px;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --d-fast: 160ms; --d-base: 240ms; --d-slow: 320ms; --d-ambient: 1200ms;
+  --titlebar-h: 40px; --side-w: 232px; --side-w-mini: 72px; --tabbar-h: 64px; --touch: 44px;
+  --z-bar: 20; --z-side: 30; --z-tabbar: 40; --z-sheet: 60; --z-toast: 70;
+  --mood-a: var(--accent); --mood-b: var(--blob-2);
+}
+
+/* ---------- Light (the base when nothing else applies) ---------- */
+:root, [data-theme="light"] {
+  --bg: #f3f6fb; --bg-2: #ffffff;
+  --surface-1: #ffffff; --surface-2: #f5f8fc; --surface-3: #e9eef6; --surface-solid: #ffffff;
+  --field: rgba(15, 23, 42, 0.035);
+  --line: rgba(15, 23, 42, 0.1); --line-2: rgba(15, 23, 42, 0.2);
+  --text: #0f1726; --muted: #5b667a; --faint: #8a93a3;
+  --accent: #0a7ea8; --accent-2: #2cc3f0; --accent-ink: #ffffff;
+  --accent-tint: rgba(10, 126, 168, 0.1); --accent-line: rgba(10, 126, 168, 0.35);
+  --btn-primary: linear-gradient(180deg, #19a2d2, #0a7ea8);
+  --danger: #c2412d; --danger-ink: #ffffff; --btn-danger: linear-gradient(180deg, #e0634f, #c2412d);
+  --ok: #16875a; --warn: #a86400;
+  --glow: 0 8px 22px -10px rgba(10, 126, 168, 0.55);
+  --glow-hover: 0 0 0 4px rgba(10, 126, 168, 0.14), 0 10px 26px -8px rgba(10, 126, 168, 0.6);
+  --shadow-1: 0 1px 2px rgba(16, 24, 40, 0.06), 0 8px 24px rgba(16, 24, 40, 0.06);
+  --shadow-2: 0 24px 60px -12px rgba(16, 24, 40, 0.28);
+  --scrim: rgba(15, 23, 42, 0.32);
+  --page: linear-gradient(180deg, #f6f9fd, #eef2f8);
+  --blob-1: #8fd8f0; --blob-2: #b8c2ff; --blob-3: #a6ebff; --blob-opacity: 0.32;
+  --skeleton: rgba(15, 23, 42, 0.06); --skeleton-shine: rgba(255, 255, 255, 0.7);
+  --glass: none;
+  color-scheme: light;
+}
+
+/* ---------- Dark: neutral graphite ---------- */
+[data-theme="dark"] {
+  --bg: #101318; --bg-2: #161b23;
+  --surface-1: rgba(255, 255, 255, 0.045); --surface-2: rgba(255, 255, 255, 0.07); --surface-3: rgba(255, 255, 255, 0.1); --surface-solid: #1a1f27;
+  --field: rgba(0, 0, 0, 0.25);
+  --line: rgba(255, 255, 255, 0.1); --line-2: rgba(255, 255, 255, 0.18);
+  --text: #e9ecf1; --muted: #9aa3b2; --faint: #6f7888;
+  --accent: #2cc3f0; --accent-2: #7be3ff; --accent-ink: #04121a;
+  --accent-tint: rgba(44, 195, 240, 0.1); --accent-line: rgba(44, 195, 240, 0.35);
+  --btn-primary: linear-gradient(180deg, #7be3ff, #2cc3f0);
+  --danger: #ff8a8a; --danger-ink: #2a0707; --btn-danger: linear-gradient(180deg, #ffb0b0, #ff8a8a);
+  --ok: #46e0b0; --warn: #ffc56b;
+  --glow: 0 8px 24px -8px rgba(44, 195, 240, 0.5);
+  --glow-hover: 0 0 0 4px rgba(44, 195, 240, 0.16), 0 10px 30px -6px rgba(44, 195, 240, 0.65);
+  --shadow-1: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 12px 32px rgba(0, 0, 0, 0.35);
+  --shadow-2: 0 30px 70px -10px rgba(0, 0, 0, 0.6);
+  --scrim: rgba(0, 0, 0, 0.5);
+  --page: radial-gradient(120% 90% at 0% 0%, var(--bg-2), var(--bg) 60%);
+  --blob-1: #2a3442; --blob-2: #283352; --blob-3: #1b4b5c; --blob-opacity: 0.4;
+  --skeleton: rgba(255, 255, 255, 0.06); --skeleton-shine: rgba(255, 255, 255, 0.1);
+  --glass: blur(14px);
+  color-scheme: dark;
+}
+
+/* ---------- Midnight: the installer (also System when Windows is dark; the same block, twice) ---------- */
+[data-theme="midnight"] {
+  --bg: #0b0f1a; --bg-2: #0f1526;
+  --surface-1: rgba(255, 255, 255, 0.045); --surface-2: rgba(255, 255, 255, 0.07); --surface-3: rgba(255, 255, 255, 0.1); --surface-solid: #121a2e;
+  --field: rgba(0, 0, 0, 0.25);
+  --line: rgba(255, 255, 255, 0.1); --line-2: rgba(255, 255, 255, 0.18);
+  --text: #e8edf7; --muted: #9aa6bd; --faint: #6c7892;
+  --accent: #2cc3f0; --accent-2: #7be3ff; --accent-ink: #04121a;
+  --accent-tint: rgba(44, 195, 240, 0.1); --accent-line: rgba(44, 195, 240, 0.35);
+  --btn-primary: linear-gradient(180deg, #7be3ff, #2cc3f0);
+  --danger: #ff8a8a; --danger-ink: #2a0707; --btn-danger: linear-gradient(180deg, #ffb0b0, #ff8a8a);
+  --ok: #46e0b0; --warn: #ffc56b;
+  --glow: 0 8px 24px -8px rgba(44, 195, 240, 0.6);
+  --glow-hover: 0 0 0 4px rgba(44, 195, 240, 0.16), 0 10px 30px -6px rgba(44, 195, 240, 0.75);
+  --shadow-1: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 18px 44px rgba(0, 2, 20, 0.45);
+  --shadow-2: 0 30px 80px -10px rgba(0, 2, 20, 0.7);
+  --scrim: rgba(2, 5, 15, 0.55);
+  --page: radial-gradient(120% 90% at 0% 0%, var(--bg-2), var(--bg) 60%);
+  --blob-1: #0e8fb8; --blob-2: #3b4bd8; --blob-3: #2cc3f0; --blob-opacity: 0.35;
+  --skeleton: rgba(255, 255, 255, 0.06); --skeleton-shine: rgba(255, 255, 255, 0.12);
+  --glass: blur(14px);
+  color-scheme: dark;
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg:#0f1115; --card:#181b22; --card-solid:#181b22; --line:#272b35; --text:#e9ecf1; --muted:#8a93a3;
-    --accent:#3ec6e0; --accent-soft:#16303a; --track:#2a2f3a; --danger:#f0785f; --ok:#4ccb83;
-    --shadow:0 20px 50px rgba(0,0,0,.35); --bg-art:var(--bg);
+  :root:not([data-theme]) {
+    --bg: #0b0f1a; --bg-2: #0f1526;
+    --surface-1: rgba(255, 255, 255, 0.045); --surface-2: rgba(255, 255, 255, 0.07); --surface-3: rgba(255, 255, 255, 0.1); --surface-solid: #121a2e;
+    --field: rgba(0, 0, 0, 0.25);
+    --line: rgba(255, 255, 255, 0.1); --line-2: rgba(255, 255, 255, 0.18);
+    --text: #e8edf7; --muted: #9aa6bd; --faint: #6c7892;
+    --accent: #2cc3f0; --accent-2: #7be3ff; --accent-ink: #04121a;
+    --accent-tint: rgba(44, 195, 240, 0.1); --accent-line: rgba(44, 195, 240, 0.35);
+    --btn-primary: linear-gradient(180deg, #7be3ff, #2cc3f0);
+    --danger: #ff8a8a; --danger-ink: #2a0707; --btn-danger: linear-gradient(180deg, #ffb0b0, #ff8a8a);
+    --ok: #46e0b0; --warn: #ffc56b;
+    --glow: 0 8px 24px -8px rgba(44, 195, 240, 0.6);
+    --glow-hover: 0 0 0 4px rgba(44, 195, 240, 0.16), 0 10px 30px -6px rgba(44, 195, 240, 0.75);
+    --shadow-1: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 18px 44px rgba(0, 2, 20, 0.45);
+    --shadow-2: 0 30px 80px -10px rgba(0, 2, 20, 0.7);
+    --scrim: rgba(2, 5, 15, 0.55);
+    --page: radial-gradient(120% 90% at 0% 0%, var(--bg-2), var(--bg) 60%);
+    --blob-1: #0e8fb8; --blob-2: #3b4bd8; --blob-3: #2cc3f0; --blob-opacity: 0.35;
+    --skeleton: rgba(255, 255, 255, 0.06); --skeleton-shine: rgba(255, 255, 255, 0.12);
+    --glass: blur(14px);
+    color-scheme: dark;
   }
 }
-:root[data-theme="dark"] {
-  --bg:#0f1115; --card:#181b22; --card-solid:#181b22; --line:#272b35; --text:#e9ecf1; --muted:#8a93a3;
-  --accent:#3ec6e0; --accent-soft:#16303a; --track:#2a2f3a; --danger:#f0785f; --ok:#4ccb83;
-  --shadow:0 20px 50px rgba(0,0,0,.35); --bg-art:var(--bg); color-scheme:dark;
-}
-:root[data-theme="light"] { color-scheme:light; }
 
-/* Midnight: deep navy with blue/violet glow and glassy cards */
-:root[data-theme="midnight"] {
-  --bg:#060b1f; --card:rgba(20,34,78,.55); --card-solid:#0d1738; --line:rgba(120,160,255,.16);
-  --text:#eaf0ff; --muted:#8f9cc6; --accent:#2ec5ff; --accent-soft:rgba(46,197,255,.13); --track:rgba(255,255,255,.12);
-  --danger:#ff7d8c; --ok:#3ee08f;
-  --shadow:inset 0 1px 0 rgba(255,255,255,.05), 0 18px 44px rgba(0,2,20,.5);
-  --bg-art:radial-gradient(1100px 620px at 88% -8%, rgba(70,100,255,.34), transparent 62%),
-           radial-gradient(900px 560px at -8% 108%, rgba(138,70,255,.24), transparent 62%),
-           linear-gradient(160deg, #081238 0%, #050a1d 55%, #0a0b2c 100%);
-  --nav-cur:linear-gradient(90deg, #1f7dff, #2ec5ff); --nav-cur-text:#fff;
-  color-scheme:dark;
+/* ---------- older names, still used by pages not yet moved to ui.css ---------- */
+:root, [data-theme] {
+  --card: var(--surface-1); --card-solid: var(--surface-solid); --accent-soft: var(--accent-tint); --track: var(--line);
+  --shadow: var(--shadow-1); --bg-art: var(--page); --nav-cur: var(--accent-tint); --nav-cur-text: var(--accent);
 }
-:root[data-theme="midnight"] .card,
-:root[data-theme="midnight"] .item { backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); }
-:root[data-theme="midnight"] .vol,
-:root[data-theme="midnight"] .stvol { text-shadow:0 0 22px rgba(46,197,255,.45); }
-:root[data-theme="midnight"] option,
-:root[data-theme="midnight"] optgroup,
-:root[data-theme="midnight"] .plmenu,
-:root[data-theme="midnight"] .toast { background:var(--card-solid); }
-:root[data-theme="midnight"] .tabs button.cur { box-shadow:0 8px 22px -8px rgba(46,160,255,.8); }
+[data-theme="midnight"] .card, [data-theme="midnight"] .item, [data-theme="dark"] .card, [data-theme="dark"] .item { backdrop-filter: var(--glass); -webkit-backdrop-filter: var(--glass); }
+[data-theme="midnight"] :is(option, optgroup, .plmenu, .toast), [data-theme="dark"] :is(option, optgroup, .plmenu, .toast) { background: var(--surface-solid); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) :is(option, optgroup, .plmenu, .toast) { background: var(--surface-solid); }
+}

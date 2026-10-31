@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; base-uri 'none'; form-action 'none'; object-src 'none'" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Echo Volume style guide</title>
+<link rel="icon" href="/app-icon.png">
+<link rel="stylesheet" href="/theme.css">
+<link rel="stylesheet" href="/ui.css">
+<link rel="stylesheet" href="/styleguide.css">
+</head>
+<body>
+<div class="bgfx" aria-hidden="true"><i></i><i></i><i></i></div>
+
+<header class="sg-top">
+  <div class="brand"><svg class="logo" aria-hidden="true"><use href="/icons.svg#logo"/></svg><span>Echo Volume · style guide</span></div>
+  <span class="spacer"></span>
+  <span class="seg" id="sgTheme" role="group" aria-label="Theme">
+    <button type="button" data-t="system">System</button><button type="button" data-t="light">Light</button>
+    <button type="button" data-t="dark">Dark</button><button type="button" data-t="midnight">Midnight</button>
+  </span>
+  <button type="button" class="btn sm" id="sgMood">Mood tint</button>
+</header>
+
+<main class="sg">
+  <section aria-labelledby="h-color"><h2 id="h-color">Colour</h2>
+    <div class="sg-swatches" id="sgSwatches"></div>
+  </section>
+
+  <section aria-labelledby="h-type"><h2 id="h-type">Type</h2>
+    <div class="card">
+      <p class="sg-h1">Good evening!</p>
+      <h2>Section title 20</h2>
+      <h3>Card title 16</h3>
+      <p>Body 14: Control your Echo devices and your TV from this PC: volume, music, routines and more.</p>
+      <p class="muted small">Muted 12: Plays through Apple Music on the Echo you pick.</p>
+      <p class="label">Label · uppercase 11</p>
+      <p class="sg-big num">7<small>/ 10</small></p>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-btn"><h2 id="h-btn">Buttons</h2>
+    <div class="card sg-row">
+      <button class="btn primary"><svg class="i"><use href="/icons.svg#play"/></svg>Play</button>
+      <button class="btn">Ghost</button>
+      <button class="btn danger">Delete</button>
+      <button class="btn danger-ghost"><svg class="i"><use href="/icons.svg#stop"/></svg>Stop all</button>
+      <button class="btn quiet">Quiet</button>
+      <button class="btn on">Toggled</button>
+      <button class="btn busy">Saving</button>
+      <button class="btn" disabled>Disabled</button>
+      <button class="btn sm">Small</button>
+      <button class="btn icon round" aria-label="Previous"><svg class="i"><use href="/icons.svg#prev"/></svg></button>
+      <button class="btn big primary" aria-label="Play"><svg class="i"><use href="/icons.svg#play"/></svg></button>
+      <button class="btn icon round" aria-label="Next"><svg class="i"><use href="/icons.svg#next"/></svg></button>
+      <button class="link">A link button</button>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-chip"><h2 id="h-chip">Chips and segmented</h2>
+    <div class="card">
+      <div class="chips"><button class="chip" aria-pressed="true">Off</button><button class="chip" aria-pressed="false">15 min</button><button class="chip" aria-pressed="false">30 min</button><button class="chip" aria-pressed="false">1 hour</button><button class="chip" disabled>Disabled</button></div>
+      <div class="sg-row sg-gap"><span class="seg"><button class="cur">Songs</button><button>Albums</button><button>Artists</button><button>Radio</button><button>Podcasts</button></span>
+        <span class="seg sm"><button class="cur">Top</button><button>Recent</button><button>Favourites</button></span></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-form"><h2 id="h-form">Fields</h2>
+    <div class="card sg-grid2">
+      <label class="field"><span>Text</span><input placeholder="Type a message for Alexa…" /></label>
+      <label class="field"><span>Select</span><select><option>Sonu</option><option>Show 8 Hallway</option><option>Everywhere (group)</option></select></label>
+      <div class="search"><svg class="i"><use href="/icons.svg#search"/></svg><input class="input" type="search" placeholder="Search songs, albums, artists…" aria-label="Search" /></div>
+      <label class="field"><span>Volume</span><input type="range" class="slider" min="0" max="10" value="4" /></label>
+      <div><div class="setrow"><span>Do Not Disturb<small>Silences notifications on this Echo</small></span><label class="switch"><input type="checkbox" checked aria-label="Do Not Disturb" /><span></span></label></div>
+        <div class="setrow"><span>Song changes</span><label class="switch"><input type="checkbox" aria-label="Song changes" /><span></span></label></div></div>
+      <div><label class="check"><input type="checkbox" checked /><span>Milk</span></label><br /><label class="check"><input type="checkbox" /><span>Bread</span></label></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-card"><h2 id="h-card">Cards and tiles</h2>
+    <div class="sg-grid3">
+      <div class="card">
+        <div class="card-head"><svg class="i"><use href="/icons.svg#speaker"/></svg><span class="card-title">Sonu</span><span class="spacer"></span><span class="card-sub">Echo</span></div>
+        <p class="sg-big num">4<small>/ 10</small></p>
+        <input type="range" class="slider" min="0" max="10" value="4" aria-label="Volume" />
+        <div class="badges sg-row"><span class="badge"><svg class="i"><use href="/icons.svg#moon"/></svg>Do Not Disturb</span><span class="badge warn"><svg class="i"><use href="/icons.svg#timer"/></svg>Tea 4:12</span></div>
+      </div>
+      <div class="card interactive"><div class="card-head"><span class="card-title">Interactive card</span></div><p class="muted">Lifts on hover.</p><div class="divider"></div><span class="live">Live</span></div>
+      <div class="card"><div class="sg-tiles">
+        <button class="tile"><div class="cover"><span>K</span></div><b>Kesariya</b><span>Pritam</span></button>
+        <button class="tile busy"><div class="cover"><span>T</span></div><b>Tum Hi Ho</b><span>Arijit Singh</span></button>
+        <div><div class="skel cover"></div><div class="skel line"></div><div class="skel line sg-w60"></div></div>
+      </div></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-mood"><h2 id="h-mood">Mood tiles</h2>
+    <div class="sg-moods">
+      <button class="mood-tile" data-a="#2cc3f0" data-b="#3b4bd8"><span class="em">📚</span><b>Study</b><small>Calm, steady, no lyrics</small><span class="meta"><span class="energy"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span></span></button>
+      <button class="mood-tile on" data-a="#a78bfa" data-b="#1e1b4b"><span class="em">🧘</span><b>Meditate</b><small>Bowls, Om and theta</small><span class="meta"><span class="energy"><i class="on"></i><i></i><i></i><i></i><i></i></span><span class="badge neutral"><svg class="i"><use href="/icons.svg#headphones"/></svg>Headphones only</span></span></button>
+      <button class="mood-tile" data-a="#ff7a59" data-b="#ffcf5c"><span class="em">🏃</span><b>Workout</b><small>High energy, big beats</small><span class="meta"><span class="energy"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span></span></button>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-prog"><h2 id="h-prog">Status and progress</h2>
+    <div class="card sg-row sg-center">
+      <svg class="ring" id="sgRing" viewBox="0 0 140 140" aria-hidden="true"><circle class="track" cx="70" cy="70" r="58"/><circle class="fill" cx="70" cy="70" r="58"/></svg>
+      <svg class="ring spin" viewBox="0 0 140 140" aria-hidden="true"><circle class="track" cx="70" cy="70" r="58"/><circle class="fill" cx="70" cy="70" r="58"/></svg>
+      <div class="sg-col"><div class="bar"><span id="sgBar"></span></div><div class="bar shimmer"><span class="sg-w70"></span></div></div>
+      <span class="spinner" aria-label="Loading"></span>
+      <span class="eqbars" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+      <span class="eqbars paused" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+      <span class="badge ok">Connected</span><span class="badge danger">Offline</span><span class="badge neutral">Paused</span>
+      <span><span class="dot ok"></span></span><span class="status err">Too many requests</span>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-overlay"><h2 id="h-overlay">Sheets, menus and toasts</h2>
+    <div class="card sg-row">
+      <button class="btn" id="sgSheet">Open a sheet</button>
+      <button class="btn" id="sgConfirm">Confirm…</button>
+      <button class="btn" id="sgMenu">Theme menu <svg class="i sm"><use href="/icons.svg#chevron-down"/></svg></button>
+      <button class="btn" id="sgToast">Toast</button>
+      <button class="btn" id="sgToastErr">Error toast</button>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-nav"><h2 id="h-nav">Navigation</h2>
+    <div class="sg-grid2">
+      <div class="card"><div class="titlebar sg-static"><svg class="logo"><use href="/icons.svg#logo"/></svg><span class="ttl">Echo Volume</span><span class="spacer"></span><span class="live">Live</span></div>
+        <nav class="nav" aria-label="Example">
+          <button class="cur"><svg class="i"><use href="/icons.svg#home"/></svg>Home</button>
+          <button><svg class="i"><use href="/icons.svg#moods"/></svg>Moods</button>
+          <button><svg class="i"><use href="/icons.svg#alarm"/></svg>Alarms &amp; timers</button>
+          <button><svg class="i"><use href="/icons.svg#settings"/></svg>Settings</button>
+        </nav></div>
+      <div class="card"><p class="muted small">Phone tab bar (shown fixed at the bottom under 760 px):</p>
+        <div class="tabbar sg-static" id="sgTabbar">
+          <button class="cur"><svg class="i"><use href="/icons.svg#home"/></svg>Home</button><button><svg class="i"><use href="/icons.svg#moods"/></svg>Moods</button>
+          <button><svg class="i"><use href="/icons.svg#alarm"/></svg>Alarms</button><button><svg class="i"><use href="/icons.svg#scenes"/></svg>Scenes</button>
+          <button><svg class="i"><use href="/icons.svg#more"/></svg>More</button></div></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-icons"><h2 id="h-icons">Icons</h2>
+    <div class="card sg-icons" id="sgIcons"></div>
+  </section>
+</main>
+<script src="/ui.js"></script>
+<script src="/styleguide.js"></script>
+</body>
+</html>
