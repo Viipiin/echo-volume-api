@@ -11,6 +11,7 @@ cookie.json
 st-token.json
 ui-state.json
 settings.json
+catalog-cache.json
 
 # Tooling / OS
 .playwright-cli/

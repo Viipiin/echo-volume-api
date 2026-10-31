@@ -257,6 +257,7 @@ app.get('/api/music/search', wrap(async (req, res) => {
   const type = ENTITY[req.query.type] ? req.query.type : 'song';
   const limit = Math.max(1, Math.min(200, Math.round(Number(req.query.limit)) || 30));
   if (!q) throw httpErr(400, '"q" is required');
+  itunesCalls.push(Date.now()); // counts toward the iTunes limit the cache warmer stays under
   const url = `https://itunes.apple.com/search?media=music&limit=${limit}&country=${MUSIC_COUNTRY}`
     + `&entity=${ENTITY[type]}&term=${encodeURIComponent(q)}`;
   const { results = [] } = await getJson(url);
@@ -316,7 +317,31 @@ const store = {
   celebrations: [], celebrate: { enabled: true, time: '09:00', device: 'all', sound: '' }, celebrated: {},
 };
 try { Object.assign(store, JSON.parse(fs.readFileSync(STORE_FILE, 'utf8'))); } catch {}
-const saveStore = () => fs.writeFile(STORE_FILE, JSON.stringify(store, null, 2), (e) => e && console.log('Saving ui-state.json failed:', e.message));
+
+// A JSON file written a moment after the last change, one write at a time, through a temp file (a crash mid-write
+// can't leave half a file). Whatever is still waiting is written when the process exits.
+function jsonSaver(file, data, delay) {
+  let timer = null, writing = false, again = false, dirty = false;
+  const name = path.basename(file);
+  const write = () => {
+    timer = null;
+    if (writing) { again = true; return; }
+    writing = true; dirty = false;
+    const text = data(), tmp = file + '.tmp';
+    const done = (e) => {
+      writing = false;
+      if (e) console.log(`Saving ${name} failed:`, e.message);
+      if (again) { again = false; write(); }
+    };
+    fs.writeFile(tmp, text, (e) => {
+      if (e) return done(e);
+      fs.rename(tmp, file, (e2) => (e2 ? fs.writeFile(file, text, done) : done())); // rename can fail while a scanner holds the file
+    });
+  };
+  process.on('exit', () => { if (dirty) try { fs.writeFileSync(file, data()); } catch {} });
+  return () => { dirty = true; clearTimeout(timer); timer = setTimeout(write, delay); };
+}
+const saveStore = jsonSaver(STORE_FILE, () => JSON.stringify(store, null, 2), 250);
 
 app.get('/api/ui', (_req, res) => res.json({ theme: store.theme, musicDevice: store.musicDevice }));
 app.post('/api/ui', (req, res) => {
@@ -888,24 +913,68 @@ function pickFresh(kind, items, n, queued) {
   return fresh.concat(stale).slice(0, n);
 }
 
+// ---------- Catalog cache: Apple lookups as ready-made tiles, kept on disk so a restart starts warm ----------
+// iTunes search allows ~20 requests a minute and the chart feeds sometimes hang a request for many seconds, so
+// Top songs and Surprise never wait on a lookup they can do without: what's cached is used, a background warmer
+// fills in the rest slowly, failures are remembered for a while instead of being retried on every refresh.
+const CATALOG_FILE = path.join(DATA_DIR, 'catalog-cache.json');
+const CATALOG_MAX_AGE = 7 * 86400000;
+let catalog = {};
+try {
+  catalog = JSON.parse(fs.readFileSync(CATALOG_FILE, 'utf8')) || {};
+  for (const [k, v] of Object.entries(catalog)) if (!(Date.now() - v?.at < CATALOG_MAX_AGE)) delete catalog[k];
+} catch {}
+const saveCatalog = jsonSaver(CATALOG_FILE, () => JSON.stringify(catalog), 3000);
+const catalogFailed = {}; // key -> until when not to ask again
+const catalogLoading = {}; // key -> the request in flight (one per key)
+const itunesCalls = []; // times of recent iTunes searches
+const itunesBusy = () => {
+  while (itunesCalls.length && itunesCalls[0] < Date.now() - 60000) itunesCalls.shift();
+  return itunesCalls.length >= 15; // leave room under the limit for searches made in the app
+};
+const catalogHas = (key) => Date.now() - (catalog[key]?.at || 0) < CATALOG_MAX_AGE;
+// Fresher than `fresh`: used as is. Older (up to a week): used, and with `swr` looked up again in the background.
+async function catalogGet(key, load, { fresh, swr = false }) {
+  const hit = catalog[key], age = hit ? Date.now() - hit.at : Infinity;
+  if (hit && age < fresh) return hit.value;
+  const run = () => (catalogLoading[key] ||= (async () => {
+    if (catalogFailed[key] > Date.now()) throw httpErr(502, 'Apple Music isn\'t answering right now, try again in a few minutes');
+    try {
+      const value = await load();
+      catalog[key] = { at: Date.now(), value }; saveCatalog();
+      return value;
+    } catch (e) { catalogFailed[key] = Date.now() + 10 * 60000; throw e; }
+  })().finally(() => { delete catalogLoading[key]; }));
+  if (hit && age < CATALOG_MAX_AGE && swr) { run().catch(() => {}); return hit.value; }
+  return run();
+}
+
 // An artist's popular songs (their top 25 in Apple's search, Hindi kinds only)
-async function artistSongs(name) {
-  const url = `https://itunes.apple.com/search?media=music&entity=song&limit=25&country=${MUSIC_COUNTRY}&term=${encodeURIComponent(name)}`;
-  const { results = [] } = await cachedJson('artist:' + name, url);
-  const want = words(name);
-  return results.filter((r) => r.trackName && !NOT_HINDI.test(r.primaryGenreName || '') && !ODD_VERSION.test(`${r.trackName} ${r.collectionName}`)
-      && (!r.trackTimeMillis || (r.trackTimeMillis > 90000 && r.trackTimeMillis < 15 * 60000))
-      && want.some((w) => words(`${r.artistName} ${r.collectionName}`).includes(w))) // by them, not just a similar name
-    .map((r) => ({ type: 'song', id: r.trackId, title: r.trackName, subtitle: r.artistName, artwork: art(r.artworkUrl100), query: phrase('song', r.trackName, r.artistName) }));
+function artistSongs(name) {
+  return catalogGet('artist:' + name, async () => {
+    itunesCalls.push(Date.now());
+    const url = `https://itunes.apple.com/search?media=music&entity=song&limit=25&country=${MUSIC_COUNTRY}&term=${encodeURIComponent(name)}`;
+    const { results = [] } = await getJson(url, 8000);
+    const want = words(name);
+    return results.filter((r) => r.trackName && !NOT_HINDI.test(r.primaryGenreName || '') && !ODD_VERSION.test(`${r.trackName} ${r.collectionName}`)
+        && (!r.trackTimeMillis || (r.trackTimeMillis > 90000 && r.trackTimeMillis < 15 * 60000))
+        && want.some((w) => words(`${r.artistName} ${r.collectionName}`).includes(w))) // by them, not just a similar name
+      .map((r) => ({ type: 'song', id: r.trackId, title: r.trackName, subtitle: r.artistName, artwork: art(r.artworkUrl100), query: phrase('song', r.trackName, r.artistName) }));
+  }, { fresh: 24 * 3600000 });
 }
-async function chartSongs() {
-  const url = `https://rss.marketingtools.apple.com/api/v2/${MUSIC_COUNTRY.toLowerCase()}/music/most-played/100/songs.json`;
-  const { feed } = await cachedJson('chart:songs', url, 6 * 3600000);
-  return (feed?.results || []).filter((r) => {
-    const kinds = (r.genres || []).map((g) => g.name).join(' ');
-    return CHART_KINDS.test(kinds) && !NOT_HINDI.test(kinds) && !ODD_VERSION.test(r.name);
-  }).map((r) => ({ type: 'song', id: r.id, title: r.name, subtitle: r.artistName, artwork: art(r.artworkUrl100), query: phrase('song', r.name, r.artistName) }));
-}
+// Chart feeds: answered from the cache at once and refreshed in the background (they often hang a request)
+const chartFeed = (key, url, keep) => catalogGet(key, async () => {
+  let feed;
+  for (let i = 0; !feed; i++) {
+    try { feed = (await getJson(url, 8000)).feed; } catch (e) { if (i === 1) throw e; }
+  }
+  return (feed.results || []).filter(keep)
+    .map((r) => ({ type: 'song', id: r.id, title: r.name, subtitle: r.artistName, artwork: art(r.artworkUrl100), query: phrase('song', r.name, r.artistName) }));
+}, { fresh: 6 * 3600000, swr: true });
+const chartSongs = () => chartFeed('chart:songs', `https://rss.marketingtools.apple.com/api/v2/${MUSIC_COUNTRY.toLowerCase()}/music/most-played/100/songs.json`, (r) => {
+  const kinds = (r.genres || []).map((g) => g.name).join(' ');
+  return CHART_KINDS.test(kinds) && !NOT_HINDI.test(kinds) && !ODD_VERSION.test(r.name);
+});
 // A batch of ~35 songs: a few popular songs each from one random artist of every kind, plus current hits
 async function surpriseSongs(queued = []) {
   const groups = {};
@@ -939,25 +1008,25 @@ const TOP_ARTISTS = {
   englishDance: ['Calvin Harris', 'David Guetta', 'Avicii', 'Alan Walker', 'Martin Garrix', 'Marshmello', 'The Chainsmokers', 'Kygo', 'Daft Punk', 'Swedish House Mafia', 'Zedd', 'Clean Bandit'],
   englishClassic: ['Michael Jackson', 'ABBA', 'Whitney Houston', 'Elton John', 'Bee Gees', 'Madonna', 'Lionel Richie', 'Celine Dion', 'Backstreet Boys', 'Phil Collins', 'George Michael', 'Bryan Adams'],
 };
-const TOP_COUNT = 30, TOP_SEEN_DAYS = 2;
-// iTunes allows ~20 requests a minute: at most this many artists not looked up yet per mix; the rest of the
-// kinds use an artist already looked up (kept for a day), so a quick second refresh doesn't get throttled
-const TOP_NEW_LOOKUPS = 8;
-async function usChartSongs() {
-  const { feed } = await cachedJson('chart:us:songs', 'https://rss.marketingtools.apple.com/api/v2/us/music/most-played/100/songs.json', 6 * 3600000);
-  return (feed?.results || []).filter((r) => !ODD_VERSION.test(r.name))
-    .map((r) => ({ type: 'song', id: r.id, title: r.name, subtitle: r.artistName, artwork: art(r.artworkUrl100), query: phrase('song', r.name, r.artistName) }));
-}
-async function topSongs() {
+const TOP_COUNT = 30, TOP_SEEN_DAYS = 2, TOP_SEEN_MAX = 400;
+// A mix is put together from what's ready after this long (cached artists answer at once); it waits longer only
+// when that's too little to show, e.g. the very first time, before anything is cached
+const TOP_DEADLINE_MS = 2500, TOP_MIN_ITEMS = 12;
+// Artists not looked up yet, per mix (the background warmer below looks up the rest, slowly)
+const TOP_NEW_LOOKUPS = 2;
+const usChartSongs = () => chartFeed('chart:us:songs', 'https://rss.marketingtools.apple.com/api/v2/us/music/most-played/100/songs.json', (r) => !ODD_VERSION.test(r.name));
+async function buildTop() {
   const groups = {};
-  let lookups = TOP_NEW_LOOKUPS;
-  await Promise.all([
+  let lookups = itunesBusy() ? 0 : TOP_NEW_LOOKUPS;
+  const work = Promise.all([
     ...shuffle(Object.entries(TOP_ARTISTS)).map(async ([kind, names]) => { // random order: the lookups go to different kinds
       const order = shuffle([...names]);
-      const tries = [...order.filter((n) => !cached['artist:' + n]).slice(0, 2), ...order.filter((n) => cached['artist:' + n])];
+      const has = (n) => catalogHas('artist:' + n);
+      const tries = [...order.filter(has), ...order.filter((n) => !has(n) && !(catalogFailed['artist:' + n] > Date.now())).slice(0, 1)];
       for (const name of tries) {
-        if (!cached['artist:' + name]) { if (lookups <= 0) continue; lookups--; }
-        const songs = await artistSongs(name).catch((e) => { console.log(`Top songs: ${name}: ${e.message}`); return []; });
+        if (!has(name)) { if (lookups <= 0) continue; lookups--; }
+        const songs = has(name) ? catalog['artist:' + name].value // a week-old list is still a fine mix
+          : await artistSongs(name).catch((e) => { console.log(`Top songs: ${name}: ${e.message}`); return []; });
         const picked = pickFresh('top', shuffle(songs.slice(0, 15)), 4, []);
         if (picked.length) { groups[kind] = picked; break; }
       }
@@ -965,12 +1034,41 @@ async function topSongs() {
     chartSongs().then((s) => { groups.chartIndia = pickFresh('top', shuffle(s), 4, []); }).catch((e) => console.log('Top songs: India chart:', e.message)),
     usChartSongs().then((s) => { groups.chartUS = pickFresh('top', shuffle(s), 4, []); }).catch((e) => console.log('Top songs: US chart:', e.message)),
   ]);
-  const items = pickFresh('top', interleave(groups), TOP_COUNT, []);
+  await Promise.race([work, wait(TOP_DEADLINE_MS)]);
+  let items = pickFresh('top', interleave(groups), TOP_COUNT, []);
+  if (items.length < TOP_MIN_ITEMS) { await work; items = pickFresh('top', interleave(groups), TOP_COUNT, []); }
+  return items;
+}
+// The next mix is built in the background as soon as one is shown, so the ↻ button gets it at once
+let topNext = null; // { at, promise }
+const prefetchTop = () => { topNext = { at: Date.now(), promise: buildTop().catch(() => null) }; };
+async function topSongs() {
+  const ready = topNext && Date.now() - topNext.at < 15 * 60000 ? await topNext.promise : null;
+  topNext = null;
+  const items = ready?.length ? ready : await buildTop();
+  // Shown now: these go to the back of the next mixes for a couple of days
   const seen = (store.surpriseSeen ||= {}).top ||= {}, now = Date.now(), old = now - TOP_SEEN_DAYS * 86400000;
   for (const [q, at] of Object.entries(seen)) if (at < old) delete seen[q];
   for (const it of items) seen[it.query] = now;
+  const all = Object.entries(seen);
+  if (all.length > TOP_SEEN_MAX) all.sort((a, b) => a[1] - b[1]).slice(0, all.length - TOP_SEEN_MAX).forEach(([q]) => delete seen[q]);
   saveStore();
+  prefetchTop();
   return items;
+}
+// Looks up one artist every few seconds (well under the iTunes limit) until every artist of Top songs and
+// Surprise is cached, then keeps the oldest ones fresh. Pauses while other lookups are in flight or many were made.
+function warmCatalog() {
+  const names = [...new Set([...Object.values(TOP_ARTISTS), ...Object.values(SURPRISE_ARTISTS)].flat())];
+  const ok = (n) => !(catalogFailed['artist:' + n] > Date.now());
+  const timer = setInterval(() => {
+    if (Object.keys(catalogLoading).length || itunesBusy()) return;
+    const name = names.find((n) => !catalogHas('artist:' + n) && ok(n))
+      || names.filter((n) => ok(n) && catalogHas('artist:' + n) && Date.now() - catalog['artist:' + n].at > 24 * 3600000).sort((a, b) => catalog['artist:' + a].at - catalog['artist:' + b].at)[0];
+    if (name) artistSongs(name).catch(() => {});
+  }, 6000);
+  timer.unref?.();
+  setTimeout(prefetchTop, 3000).unref?.(); // the first mix too, before anyone asks
 }
 
 async function podcastPool() {
@@ -1252,6 +1350,7 @@ portTaken(CFG.port).then((taken) => {
     console.log(`Echo Volume API → http://localhost:${CFG.port}  (UI at /)   data: ${DATA_DIR}`);
     events.emit('listening', CFG.port);
     syncLan();
+    warmCatalog();
     startAlexa();
   }).on('error', listenError);
 });
