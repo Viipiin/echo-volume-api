@@ -437,7 +437,7 @@ app.whenReady().then(() => {
     // Started with Windows: wait in the tray. After an update (the installer passes --updated): say so.
     if (!process.argv.includes('--hidden')) createMainWindow();
     if (process.argv.includes('--updated') && Notification.isSupported()) {
-      new Notification({ title: `Echo Volume ${app.getVersion()}`, body: 'Updated. Top songs now bring a new mix every time: try the Refresh button next to Top songs.', icon: path.join(ROOT, 'build', 'icon.png') }).show();
+      new Notification({ title: `Echo Volume ${app.getVersion()}`, body: 'Updated: a new look, Moods (tray menu and Ctrl+Alt+M), and 120 fresh songs on every Top songs refresh.', icon: path.join(ROOT, 'build', 'icon.png') }).show();
     }
     registerHotkeys();
     if (failedHotkeys.length) console.log('Hotkeys unavailable:', failedHotkeys.join(', '));
