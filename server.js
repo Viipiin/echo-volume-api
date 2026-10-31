@@ -39,6 +39,7 @@ const volumeQueue = {}; // serial -> { busy, next: { step, waiters } } (see send
 const volumeCache = {}; // serial -> { v, at }: last known volume (Amazon push updates, reads, our own changes)
 const nowCache = {}; // serial -> { at, info }: player info shared by every open page; push updates clear it
 let features = null; // alexa-features.js (set up below, once the shared UI state is loaded)
+let moodPlayer = null; // mood-player.js (set up below)
 
 // ---------- Alexa login / cookie persistence ----------
 function loadCookie() {
@@ -369,6 +370,7 @@ app.get('/api/music/favorites', (_req, res) => res.json(store.favorites));
 app.post('/api/music/favorites', wrap(async (req, res) => {
   const item = musicItem(req.body?.item);
   store.favorites = [item, ...store.favorites.filter((f) => f.query !== item.query)].slice(0, 200);
+  moodPlayer?.onFavorite(); // a song liked during a Mood counts for the phrase that found it
   saveStore(); res.json(store.favorites);
 }));
 app.post('/api/music/favorites/remove', wrap(async (req, res) => {
@@ -513,9 +515,13 @@ app.post('/api/tv/:m(mute|unmute)', wrap(async (req, res) => {
 // (Alexa's autoplay, or a skip on the Echo) or playback stops.
 // A list without an id (songs queued from search results, a Surprise mix) can carry "more": called near its end
 // for items to add, so it keeps going; and "surprise" ('song' | 'podcast'), the Surprise button that started it.
+// A list can also be a "station" list (a Mood): each item is a search phrase that starts an Apple Music mix which
+// keeps going by itself, so another track coming on is counted, not taken as the item ending; the list moves on
+// after the item's `tracks` tracks. Hooks from the list: onItem(run, item) when an item starts, onTrack(run) when a
+// new track comes on, onEnd(run, reason) when the run stops.
 let plRun = null; // { serial, list (id), index, title (as Alexa names it once started), at (started), idle (checks) }
 let plTimer = null, plBusy = false, podMisses = 0; // podcasts in a row that Alexa played something else for
-const plStatus = () => (plRun ? { device: alexa.serialNumbers[plRun.serial]?.accountName || null, serial: plRun.serial, list: plRun.list, index: plRun.index, surprise: plRun.surprise || null } : null);
+const plStatus = () => (plRun ? { device: alexa.serialNumbers[plRun.serial]?.accountName || null, serial: plRun.serial, list: plRun.list, index: plRun.index, surprise: plRun.surprise || null, mood: plRun.mood || null } : null);
 const plName = (v) => String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, 60);
 const plSummary = (l) => ({ id: l.id, name: l.name, count: l.items.length, artwork: l.items.find((x) => x.artwork)?.artwork || null });
 const plList = () => ({ lists: store.playlists.map(plSummary), playing: plStatus(), crossfade: store.crossfade });
@@ -525,15 +531,23 @@ function playlist(id) {
   if (!l) throw httpErr(404, 'That playlist no longer exists');
   return l;
 }
-function stopPlaylist(serial) {
+// reason (for a mood's onEnd): 'stopped' (on the Echo, Stop all, a routine), 'replaced' (something else chosen),
+// 'sleep', 'end', 'error'
+function stopPlaylist(serial, reason = 'replaced') {
   if (!plRun || (serial && plRun.serial !== serial)) return;
+  const run = plRun;
   plRun = null; clearInterval(plTimer); plTimer = null; clearTimeout(fadeTimer);
+  try { run.onEnd?.(run, reason); } catch (e) { console.log('Queue end hook failed:', e.message); }
 }
 // fadeIn: the volume to bring the song up to once it plays (it starts quiet, at the end of a crossfade)
 async function playlistPlay(dev, list, index, fadeIn) {
   const item = list.items[index];
-  if (!item) return stopPlaylist();
-  const run = plRun = { serial: dev.serialNumber, list: list.id, items: list.items, more: list.more, surprise: list.surprise, index, title: null, at: Date.now(), idle: 0 };
+  if (!item) return stopPlaylist(null, 'end');
+  const hooks = { station: !!list.station, mood: list.mood, onItem: list.onItem, onTrack: list.onTrack, onEnd: list.onEnd };
+  const prev = plRun;
+  const run = plRun = { serial: dev.serialNumber, list: list.id, items: list.items, more: list.more, surprise: list.surprise, ...hooks, index, title: null, at: Date.now(), idle: 0, tracks: 0 };
+  if (prev && prev !== run && prev.onEnd && prev.onEnd !== run.onEnd) { try { prev.onEnd(prev, 'replaced'); } catch {} } // another list took over
+  try { run.onItem?.(run, item); } catch (e) { console.log('Queue item hook failed:', e.message); }
   clearInterval(plTimer); clearTimeout(fadeTimer);
   plTimer = setInterval(() => playlistCheck().catch((e) => console.log('Playlist check failed:', e.message)), 5000);
   plTimer.unref?.();
@@ -553,13 +567,13 @@ async function playlistPlay(dev, list, index, fadeIn) {
 async function playlistStep(dir, fadeIn) {
   const run = plRun; if (!run) return;
   const dev = alexa.serialNumbers[run.serial];
-  const list = run.list ? store.playlists.find((x) => x.id === run.list) // null id: songs queued from search results, a Surprise mix
-    : { id: null, items: run.items, more: run.more, surprise: run.surprise };
+  const list = run.list ? store.playlists.find((x) => x.id === run.list) // null id: songs queued from search results, a Surprise mix, a Mood
+    : { id: null, items: run.items, more: run.more, surprise: run.surprise, station: run.station, mood: run.mood, onItem: run.onItem, onTrack: run.onTrack, onEnd: run.onEnd };
   const next = run.index + dir;
   if (!dev || !list || next < 0 || next >= list.items.length) {
     if (dir > 0 && dev) await p((cb) => alexa.sendCommand(dev.serialNumber, 'pause', null, cb)).catch(() => {}); // end of the list
     if (fadeIn && dev) await setVolume(dev, fadeIn).catch(() => {}); // faded out for a song that's gone now
-    return stopPlaylist();
+    return stopPlaylist(null, 'end');
   }
   await playlistPlay(dev, list, next, fadeIn);
 }
@@ -571,7 +585,7 @@ async function playlistCheck() {
   if (run) {
     const gap = run.checked ? Date.now() - run.checked : 0;
     run.checked = Date.now();
-    if (gap > PL_ASLEEP_MS) { console.log(`Queue stopped: no check for ${Math.round(gap / 1000)}s (the computer slept)`); return stopPlaylist(); }
+    if (gap > PL_ASLEEP_MS) { console.log(`Queue stopped: no check for ${Math.round(gap / 1000)}s (the computer slept)`); return stopPlaylist(null, 'stopped'); }
   }
   // Give Alexa time to start the song (longer for a podcast: it's asked by voice, and the song before can still
   // be reported meanwhile, which would be taken for the podcast and then for it moving on)
@@ -581,6 +595,7 @@ async function playlistCheck() {
   try {
     const i = await playerInfo(run.serial, true);
     if (plRun !== run || run.fading) return;
+    if (run.station) return await stationCheck(run, i); // (await: plBusy stays set until it's done)
     // A podcast reports the show as its title and the episode below it: Alexa going on to another episode of
     // the show counts as moving on too (a Surprise mix then plays the next show)
     const title = (podcast && i.infoText?.title ? [i.infoText.title, i.infoText.subText1].filter(Boolean).join(' · ') : i.infoText?.title) || null;
@@ -609,10 +624,38 @@ async function playlistCheck() {
       const ended = (pr.mediaLength > 0 && pr.mediaProgress >= pr.mediaLength - 3)
         || (last && last.progress + (Date.now() - last.at) / 1000 >= last.length - 10);
       if (++run.idle < (ended ? 1 : 3)) return;
-      if (run.title && !ended) { console.log(`Queue stopped: "${run.title}" was stopped on the Echo`); return stopPlaylist(); }
+      if (run.title && !ended) { console.log(`Queue stopped: "${run.title}" was stopped on the Echo`); return stopPlaylist(null, 'stopped'); }
       await playlistStep(1); // played to its end, or never started (Alexa didn't find it): the next one
     }
   } finally { plBusy = false; }
+}
+// A station list (a Mood) after a check: count the tracks of the mix the phrase started, go on to the next phrase after
+// the item's number of tracks; stopped on the Echo ends it. A phrase that never starts is left to the list's own check
+// (mood-player.js tries another phrase), so it isn't skipped twice.
+async function stationCheck(run, i) {
+  const item = runItems(run)[run.index] || {};
+  const title = i.infoText?.title || null;
+  if (i.state === 'PLAYING' && title) {
+    run.idle = 0;
+    // Something other than Apple Music took over (radio, Bluetooth, a podcast asked for by voice): the mood ends
+    if (run.title && !/apple/i.test(i.provider?.providerName || '')) { console.log(`Mood stopped: ${i.provider?.providerName || 'another source'} is playing`); return stopPlaylist(null, 'replaced'); }
+    if (i.progress?.mediaLength > 0) run.pos = { at: Date.now(), progress: i.progress.mediaProgress || 0, length: i.progress.mediaLength };
+    if (title === run.title) return;
+    const first = !run.title;
+    run.title = title; run.tracks++;
+    try { run.onTrack?.(run); } catch (e) { console.log('Queue track hook failed:', e.message); }
+    if (first) return;
+    if (run.tracks > (item.tracks || 4)) await playlistStep(1); // this phrase has had its turn: the next one
+  } else if (i.state === 'PAUSED') run.idle = 0;
+  else {
+    if (!run.title) return;
+    const pr = i.progress || {}, last = run.pos;
+    const ended = (pr.mediaLength > 0 && pr.mediaProgress >= pr.mediaLength - 3)
+      || (last && last.progress + (Date.now() - last.at) / 1000 >= last.length - 10);
+    if (++run.idle < (ended ? 1 : 3)) return;
+    if (!ended) { console.log(`Mood stopped: "${run.title}" was stopped on the Echo`); return stopPlaylist(null, 'stopped'); }
+    await playlistStep(1); // the mix ran out: the next phrase
+  }
 }
 
 // ---------- Crossfade between playlist songs ----------
@@ -630,6 +673,7 @@ function scheduleCrossfade(run, pr) {
   clearTimeout(fadeTimer);
   const secs = store.crossfade, dev = alexa.serialNumbers[run.serial];
   if (!secs || !(pr?.mediaLength > 0) || run.index + 1 >= runItems(run).length) return; // off, unknown length, last song
+  if (run.station) return; // a mood's mix goes on by itself: nothing to fade into
   if (runItems(run)[run.index]?.type === 'podcast') return; // a talk doesn't fade into the next one
   if (!dev || dev.deviceFamily === 'WHA') return; // speaker groups: a command per member would hit the rate limit
   const left = pr.mediaLength - (pr.mediaProgress || 0);
@@ -1123,8 +1167,11 @@ app.post('/api/music/surprise', wrap(async (req, res) => {
 
 app.post('/api/music/:cmd(pause|next|previous)', wrap(async (req, res) => {
   const dev = musicDevice(req.body?.device);
+  // A Mood: next / previous are the mix's own tracks (Alexa's); "new mix" is /api/moods/next. A next pressed soon after
+  // the phrase started counts against that phrase.
+  if (req.params.cmd === 'next' && plRun?.serial === dev.serialNumber && plRun.station) moodPlayer?.onSkip(plRun);
   // A local playlist is playing here: next / previous move through it, not Alexa's own up-next songs
-  if (req.params.cmd !== 'pause' && plRun?.serial === dev.serialNumber) {
+  if (req.params.cmd !== 'pause' && plRun?.serial === dev.serialNumber && !plRun.station) {
     await playlistStep(req.params.cmd === 'next' ? 1 : -1);
     return res.json({ device: dev.accountName, command: req.params.cmd, playlist: plStatus() });
   }
@@ -1205,11 +1252,9 @@ app.post('/api/music/move', wrap(async (req, res) => {
 }));
 
 // Sleep timer: pause after N minutes (0 cancels). Kept in memory, so a restart clears it.
+// A Mood playing there ends too (a playlist or Surprise mix just waits, paused, as before).
 const sleepTimers = {}; // serial -> { at, timer }
-app.post('/api/music/sleep', wrap(async (req, res) => {
-  const minutes = Number(req.body?.minutes);
-  if (!(minutes >= 0 && minutes <= 600)) throw httpErr(400, '"minutes" is required (0 cancels)');
-  const dev = musicDevice(req.body?.device);
+function setSleep(dev, minutes) {
   const serial = dev.serialNumber;
   clearTimeout(sleepTimers[serial]?.timer);
   delete sleepTimers[serial];
@@ -1219,11 +1264,18 @@ app.post('/api/music/sleep', wrap(async (req, res) => {
       at,
       timer: setTimeout(() => {
         delete sleepTimers[serial];
+        if (plRun?.serial === serial && plRun.station) stopPlaylist(serial, 'sleep');
         alexa.sendCommand(serial, 'pause', null, (e) => console.log(e ? `Sleep timer: pausing ${dev.accountName} failed: ${e.message}` : `Sleep timer: paused ${dev.accountName}`));
       }, minutes * 60000),
     };
   }
-  res.json({ device: dev.accountName, sleepAt: sleepTimers[serial]?.at ?? null });
+  return sleepTimers[serial]?.at ?? null;
+}
+app.post('/api/music/sleep', wrap(async (req, res) => {
+  const minutes = Number(req.body?.minutes);
+  if (!(minutes >= 0 && minutes <= 600)) throw httpErr(400, '"minutes" is required (0 cancels)');
+  const dev = musicDevice(req.body?.device);
+  res.json({ device: dev.accountName, sleepAt: setSleep(dev, minutes) });
 }));
 
 // Player info, shared for 3s between the pages polling it (fresh = skip the cache)
@@ -1255,6 +1307,7 @@ app.get('/api/music/now', wrap(async (req, res) => {
     shuffle: transport(i.transport?.shuffle),
     repeat: transport(i.transport?.repeat),
     surprise: plRun?.serial === dev.serialNumber ? plRun.surprise || null : null, // a Surprise mix playing here
+    mood: moodPlayer?.now(dev.serialNumber) || null, // a Mood playing here
   });
 }));
 
@@ -1326,6 +1379,12 @@ features = require('./alexa-features')({
   musicCountry: MUSIC_COUNTRY,
 });
 app.use('/api', features.router);
+// Moods: how you feel or what you're doing → matching Apple Music, endlessly (mood-player.js)
+moodPlayer = require('./mood-player')({
+  alexa, p, store, saveStore, events, httpErr, wrap, musicDevice, getVolume, setVolume, setSleep, playlistPlay, playlistStep, stopPlaylist,
+  playerInfo,
+});
+app.use('/api', moodPlayer.router);
 
 // JSON (not Express's HTML pages) for unknown API routes and malformed request bodies
 app.use('/api', (_req, res) => res.status(404).json({ error: 'Unknown API route' }));

@@ -46,6 +46,7 @@ module.exports = function features(ctx) {
   });
   setInterval(() => { for (const res of clients) res.write(': ping\n\n'); }, 25000).unref();
   events.on('theme', (theme) => broadcast('theme', { theme }));
+  events.on('mood', (m) => broadcast('mood', m)); // mood-player.js: started, new phrase, new track, stopped
 
   function hookPush() {
     const media = (d) => {
@@ -581,6 +582,8 @@ module.exports = function features(ctx) {
     if (!show) throw httpErr(400, '"podcast" (the show name) is required');
     const dev = musicDevice(req.body?.device);
     const say = `play ${req.body?.latest === false ? '' : 'the latest episode of '}${show} on apple podcasts`;
+    // Something else chosen: a playlist, Surprise mix or Mood playing there doesn't take over again at its next check
+    stopPlaylist(dev.serialNumber);
     if (dev.deviceFamily === 'WHA') await textCommand(groupMember(dev), `${say} on ${dev.accountName}`);
     else await textCommand(dev, say);
     delete nowCache[dev.serialNumber];
