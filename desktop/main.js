@@ -7,7 +7,12 @@ const path = require('path');
 const APP_ID = 'local.echovolume.app';
 const ROOT = path.join(__dirname, '..');
 
-if (!app.requestSingleInstanceLock()) { app.quit(); process.exit(0); }
+// --uninstall (Settings → Apps): the uninstaller window from installer/, nothing of the app itself starts
+if (process.argv.includes('--uninstall')) return require(path.join(ROOT, 'installer', 'uninstall-main.js'));
+// --quit (the installer, before replacing files): ask a running copy to quit; when none runs, there's nothing to do
+const quitRequest = process.argv.includes('--quit');
+if (!app.requestSingleInstanceLock({ quit: quitRequest })) { app.quit(); process.exit(0); }
+if (quitRequest) { app.quit(); return; }
 app.setAppUserModelId(APP_ID);
 
 // ---------- data folder (.env, cookie.json, st-token.json live here, not inside the app) ----------
@@ -191,9 +196,19 @@ async function refreshTrayMenu() {
     { label: 'Media keys control Echo music', type: 'checkbox', checked: settings.mediaKeys, click: (i) => { settings.mediaKeys = i.checked; saveSettings(); registerHotkeys(); } },
     { label: 'Show hotkeys…', click: showHotkeyHelp },
     { type: 'separator' },
+    ...(app.isPackaged ? [{ label: 'Start with Windows', type: 'checkbox', checked: startsWithWindows(), click: (i) => setStartWithWindows(i.checked) }] : []),
     { label: 'Open data folder', click: () => shell.openPath(DATA) },
     { label: 'Quit', click: () => { quitting = true; app.quit(); } },
   ]));
+}
+
+// Start with Windows: the "Echo Volume" entry under HKCU\...\Run, also set by the installer's finish page.
+// It starts the app with --hidden, so it waits in the tray.
+const LOGIN_ITEM = { name: 'Echo Volume', args: ['--hidden'] };
+const startsWithWindows = () => app.getLoginItemSettings({ args: LOGIN_ITEM.args }).launchItems?.some((i) => i.name === LOGIN_ITEM.name && i.enabled) ?? false;
+function setStartWithWindows(on) {
+  app.setLoginItemSettings({ ...LOGIN_ITEM, openAtLogin: on, enabled: on });
+  refreshTrayMenu();
 }
 
 function toggleMini() {
@@ -343,7 +358,9 @@ async function tvMute() {
 }
 
 // ---------- lifecycle ----------
-app.on('second-instance', showMain);
+app.on('second-instance', (_e, _argv, _cwd, data) => {
+  if (data?.quit) { quitting = true; app.quit(); } else showMain();
+});
 app.on('before-quit', () => { quitting = true; });
 app.on('will-quit', () => globalShortcut.unregisterAll());
 app.on('window-all-closed', () => {}); // keep running in the tray
@@ -352,7 +369,11 @@ app.whenReady().then(() => {
   startServer();
   server.events.once('listening', () => {
     createTray();
-    createMainWindow();
+    // Started with Windows: wait in the tray. After an update (the installer passes --updated): say so.
+    if (!process.argv.includes('--hidden')) createMainWindow();
+    if (process.argv.includes('--updated') && Notification.isSupported()) {
+      new Notification({ title: `Echo Volume ${app.getVersion()}`, body: 'Updated. Top songs now bring a new mix every time: try the ↻ button.', icon: path.join(ROOT, 'build', 'icon.png') }).show();
+    }
     registerHotkeys();
     if (failedHotkeys.length) console.log('Hotkeys unavailable:', failedHotkeys.join(', '));
   });

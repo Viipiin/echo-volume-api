@@ -58,8 +58,12 @@ function pixel(px, py, size) {
   return [...c, Math.round(255 * bg)];
 }
 
-const out = path.join(__dirname, '..', 'build');
-fs.mkdirSync(out, { recursive: true });
-fs.writeFileSync(path.join(out, 'icon.png'), png(256, pixel));
-fs.writeFileSync(path.join(out, 'tray.png'), png(32, pixel));
-console.log('Wrote build/icon.png and build/tray.png');
+module.exports = { pixel }; // installer/scripts/make-splash.js draws the same logo
+
+if (require.main === module) {
+  const out = path.join(__dirname, '..', 'build');
+  fs.mkdirSync(out, { recursive: true });
+  fs.writeFileSync(path.join(out, 'icon.png'), png(256, pixel));
+  fs.writeFileSync(path.join(out, 'tray.png'), png(32, pixel));
+  console.log('Wrote build/icon.png and build/tray.png');
+}
