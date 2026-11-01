@@ -29,10 +29,12 @@ module.exports = function moodPlayer(ctx) {
   // ---------- phrases ----------
   const parse = (s) => { const [text, e] = s.split('|'); return { text, energy: Number(e) || null }; };
   const key = (m, text) => `${m.id}|${text}`;
+  // Each phrase keeps its language, so a mix can take turns between them
   function pool(m, o) {
-    const langs = o.vocals === 'instrumental' ? ['instrumental'] : o.vocals === 'light' ? ['instrumental', o.language] : [o.language];
-    let list = langs.flatMap((l) => (m.phrases[l] || []).map(parse));
-    if (!list.length) list = Object.values(m.phrases).flat().map(parse); // nothing in that language: any
+    const chosen = M.languagesOf(o.language);
+    const langs = o.vocals === 'instrumental' ? ['instrumental'] : o.vocals === 'light' ? ['instrumental', ...chosen] : chosen;
+    let list = langs.flatMap((l) => (m.phrases[l] || []).map((x) => ({ ...parse(x), lang: l })));
+    if (!list.length) list = Object.entries(m.phrases).flatMap(([l, ps]) => ps.map((x) => ({ ...parse(x), lang: l }))); // nothing in that language: any
     return list.map((x) => ({ ...x, energy: x.energy || m.energy }));
   }
   const weighted = (items, w) => {
@@ -42,12 +44,19 @@ module.exports = function moodPlayer(ctx) {
     return items.at(-1);
   };
   // Not the last few, not anything heard in the last 3 days (while there's something else); near the intensity,
-  // and the better-liked ones more often
-  function pickMood(m, o, avoid) {
+  // and the better-liked ones more often. A mix first picks a language at random (not the last phrase's), so each
+  // language gets an even share however many phrases it has.
+  function pickMood(m, o, avoid, lastLang) {
     const s = state(), scores = s.scores[m.id] || {}, now = Date.now();
     const all = pool(m, o).filter((x) => !avoid.has(x.text));
     const fresh = all.filter((x) => !(now - (s.seen[key(m, x.text)] || 0) < SEEN_MS));
-    const from = fresh.length ? fresh : (all.length ? all : pool(m, o)).sort((a, b) => (s.seen[key(m, a.text)] || 0) - (s.seen[key(m, b.text)] || 0)).slice(0, 3);
+    let from = fresh.length ? fresh : (all.length ? all : pool(m, o)).sort((a, b) => (s.seen[key(m, a.text)] || 0) - (s.seen[key(m, b.text)] || 0)).slice(0, 3);
+    if (M.languagesOf(o.language).length > 1) {
+      const langs = [...new Set(from.map((x) => x.lang))];
+      const turn = langs.length > 1 ? langs.filter((l) => l !== lastLang) : langs;
+      const lang = turn[Math.floor(Math.random() * turn.length)];
+      from = from.filter((x) => x.lang === lang);
+    }
     return weighted(from, (x) => Math.exp((scores[x.text] || 0) / 2) * Math.exp(-((x.energy - o.intensity) ** 2) / 2));
   }
   function pickFrequency(layer, avoid) {
@@ -59,7 +68,8 @@ module.exports = function moodPlayer(ctx) {
     const out = [], avoid = new Set((c.queued || []).slice(-3));
     for (let i = 0; i < n; i++) {
       const freqTurn = c.layer && (c.ratio === 0 || c.cadence === 'freq');
-      const pick = freqTurn ? pickFrequency(c.layer, avoid) : pickMood(c.mood, c.opts, avoid);
+      const pick = freqTurn ? pickFrequency(c.layer, avoid) : pickMood(c.mood, c.opts, avoid, c.lastLang);
+      if (pick.lang) c.lastLang = pick.lang;
       const tracks = freqTurn ? (c.ratio === 0 ? 3 : 1) : c.layer ? c.ratio : TRACKS_PER_PHRASE;
       out.push({ type: 'phrase', query: pick.text, title: pick.text, layer: freqTurn ? 'frequency' : 'mood', tracks });
       if (c.layer && c.ratio > 0) c.cadence = freqTurn ? 'mood' : 'freq';
@@ -145,10 +155,12 @@ module.exports = function moodPlayer(ctx) {
       if (ok) { c.fails = 0; return; }
       if (i.state === 'PAUSED' && i.infoText?.title) return; // paused by someone: leave it
       c.fails = (c.fails || 0) + 1;
+      (c.failed ||= []).push(item.query);
       item.finished = true; // not the phrase's fault as such: no score
       console.log(`Mood "${c.mood.name}": "${item.query}" didn't start (${i.state || 'no state'}${i.provider?.providerName ? `, ${i.provider.providerName}` : ''})`);
       if (c.fails >= MAX_FAILS) {
-        c.error = `Apple Music didn't start on ${c.device}. Check that the Echo is online and Apple Music is linked in the Alexa app (Settings → Music & Podcasts).`;
+        // Most often Alexa answered "I couldn't find any …": Apple Music only finds artist, song, album and playlist names
+        c.error = `Nothing started on ${c.device} for "${c.failed.slice(-MAX_FAILS).join('", "')}". If Alexa said "I couldn't find…", edit the mood's phrases to artist, song, album or playlist names. Otherwise check that the Echo is online and Apple Music is linked in the Alexa app (Settings → Music & Podcasts).`;
         return stopPlaylist(c.serial, 'error');
       }
       playlistStep(1).catch((e) => console.log('Mood: next phrase failed:', e.message));
@@ -170,7 +182,7 @@ module.exports = function moodPlayer(ctx) {
     if (layerIn && F.preset(layerIn)?.headphonesOnly) throw httpErr(400, `${F.preset(layerIn).name} is binaural: headphones only. ${F.HELP}`);
     const opts = {
       intensity: Math.max(1, Math.min(5, Math.round(Number(input.intensity)) || m.energy)),
-      language: M.LANGUAGES.some((l) => l.id === input.language) ? input.language : s.prefs.language,
+      language: M.languageOk(input.language) ? input.language : s.prefs.language,
       vocals: M.VOCALS.includes(input.vocals) ? input.vocals : m.vocals,
       frequencyLayer: layer,
       volume: input.volume == null || input.volume === '' ? m.defaultVolume : Math.max(0, Math.min(10, Math.round(Number(input.volume)))),
@@ -233,7 +245,7 @@ module.exports = function moodPlayer(ctx) {
   // ---------- routes ----------
   const moodList = () => {
     const s = state();
-    return { groups: M.GROUPS, languages: M.LANGUAGES, icons: M.ICONS, moods: moods(), prefs: s.prefs, last: s.last, favorites: s.favorites };
+    return { groups: M.GROUPS, languages: M.LANGUAGES, mixes: M.MIXES, icons: M.ICONS, moods: moods(), prefs: s.prefs, last: s.last, favorites: s.favorites };
   };
   router.get('/moods', (_req, res) => res.json(moodList()));
   router.get('/moods/suggest', (req, res) => {
@@ -257,7 +269,7 @@ module.exports = function moodPlayer(ctx) {
     const s = state(), b = req.body || {};
     if (typeof b.ambience === 'boolean') s.prefs.ambience = b.ambience;
     if (b.freqRatio != null) { const r = Math.round(Number(b.freqRatio)); if (!(r >= 0 && r <= 10)) throw httpErr(400, '"freqRatio" is 0-10'); s.prefs.freqRatio = r; }
-    if (b.language != null) { if (!M.LANGUAGES.some((l) => l.id === b.language)) throw httpErr(400, 'Unknown language'); s.prefs.language = b.language; }
+    if (b.language != null) { if (!M.languageOk(b.language)) throw httpErr(400, 'Unknown language'); s.prefs.language = b.language; }
     saveStore();
     res.json(s.prefs);
   }));

@@ -148,7 +148,7 @@
       <div class="mf-row"><span class="label">Play on</span><div class="chips">${playable().map((d) => chip('dev', d.serial, `${d.family === 'WHA' ? icon('group', 'sm') : icon('speaker', 'sm')}${esc(d.name)}`, o.device)).join('')}</div></div>
       <div class="mf-row"><span class="label">Intensity <b class="mf-val" id="mfIntV">${ENERGY[o.intensity]}</b></span>
         <input type="range" class="slider" id="mfInt" min="1" max="5" step="1" value="${o.intensity}" aria-label="Intensity, calm to energetic" /></div>
-      <div class="mf-row"><span class="label">Language</span><div class="chips">${s.languages.map((l) => chip('lang', l.id, esc(l.name), o.language)).join('')}</div></div>
+      <div class="mf-row"><span class="label">Language</span><div class="chips">${[...(s.mixes || []), ...s.languages].map((l) => chip('lang', l.id, esc(l.name), o.language)).join('')}</div></div>
       <div class="mf-row"><span class="label">Vocals</span><span class="seg" role="group" aria-label="Vocals">${[['instrumental', 'Instrumental'], ['light', 'Light vocals'], ['any', 'Any']]
         .map(([v, t]) => `<button type="button" data-voc="${v}" class="${v === o.vocals ? 'cur' : ''}" aria-pressed="${v === o.vocals}">${t}</button>`).join('')}</span></div>
       <div class="mf-row"><div class="setrow"><span>Healing frequency<small>Mixed in every few tracks${m.frequencyRatio === 0 ? ' (all of it, for this mood)' : ''}</small></span>
@@ -223,7 +223,7 @@
         <div class="field mf-wide"><span id="meIconL">Icon</span><div class="icon-pick" id="meIcon" role="radiogroup" aria-labelledby="meIconL">${d.icons.map((i) =>
           `<button type="button" role="radio" data-icon="${esc(i)}" aria-checked="${i === (m.icon || 'music')}" aria-label="${esc(i.replace(/-/g, ' '))}" title="${esc(i.replace(/-/g, ' '))}">${icon(i)}</button>`).join('')}</div></div>
       </div>
-      <p class="label mf-ph">Search phrases, one per line <span class="muted">(what Alexa searches Apple Music for; add “|4” for a livelier one)</span></p>
+      <p class="label mf-ph">Search phrases, one per line <span class="muted">(artist, song, album or playlist names: Apple Music can't find descriptions like “happy songs”; add “|4” for a livelier one)</span></p>
       <div class="mf-grid">${d.languages.map((l) => `<label class="field"><span>${esc(l.name)}</span><textarea class="input" data-lang="${l.id}" rows="4">${esc((m.phrases[l.id] || []).join('\n'))}</textarea></label>`).join('')}</div>
       <div class="sheet-foot">${!isNew && m.builtIn && m.edited ? '<button type="button" class="btn quiet" id="meReset">Reset to built-in</button><span class="spacer"></span>' : ''}
         <button type="button" class="btn" data-close>Cancel</button><button type="submit" class="btn primary">${isNew ? 'Add mood' : 'Save'}</button></div>`;

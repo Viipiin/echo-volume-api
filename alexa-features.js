@@ -603,7 +603,7 @@ module.exports = function features(ctx) {
     const steps = (Array.isArray(s.steps) ? s.steps : []).slice(0, 30).map((st) => {
       if (!STEP_TYPES.includes(st?.type)) throw httpErr(400, `Unknown step "${st?.type}"`);
       const out = { type: st.type };
-      for (const k of ['device', 'query', 'provider', 'action', 'value', 'text', 'id']) if (st[k] != null && st[k] !== '') out[k] = text(st[k], 250);
+      for (const k of ['device', 'query', 'provider', 'action', 'value', 'text', 'id', 'language']) if (st[k] != null && st[k] !== '') out[k] = text(st[k], 250);
       for (const k of ['level', 'minutes', 'seconds']) if (st[k] != null && st[k] !== '' && !isNaN(st[k])) out[k] = Number(st[k]);
       if (typeof st.on === 'boolean') out.on = st.on;
       return out;
@@ -648,8 +648,9 @@ module.exports = function features(ctx) {
   const STEP = {
     volume: (s) => self('POST', '/volume', { device: s.device, level: (s.level ?? 5) * 10 }),
     music: (s) => self('POST', '/music/play', { device: s.device, query: s.query, provider: s.provider }),
-    // A mood with its own volume and sleep timer unless the step sets them (minutes 0 = no sleep timer)
-    mood: (s) => self('POST', '/moods/play', { device: s.device, moodId: s.id, volume: s.level, sleepMinutes: s.minutes }),
+    // A mood with its own volume and sleep timer unless the step sets them (minutes 0 = no sleep timer), in the step's
+    // language ("mix" = Hindi, English and Punjabi in turn) or else the one last picked on the Moods screen
+    mood: (s) => self('POST', '/moods/play', { device: s.device, moodId: s.id, volume: s.level, sleepMinutes: s.minutes, language: s.language }),
     moodstop: () => self('POST', '/moods/stop', {}),
     pause: (s) => self('POST', '/music/pause', { device: s.device }),
     resume: (s) => self('POST', '/music/play', { device: s.device }),
