@@ -167,13 +167,14 @@ async function load() {
     document.dispatchEvent(new Event('devices')); // screens drawn before the list arrived (Moods) fill their Echo pickers
     setConn('ok', 'Connected');
     render();
-    if (!stOn) updateTv(); // the Alexa TV panel is hidden when SmartThings is connected
     musicInit();
     alexaInit();
   } catch (e) {
     setConn('bad', e.message);
     $('grid').innerHTML = `<div class="empty">${esc(e.message)}</div>`;
   }
+  // Outside the try: a failed login must still replace "Checking…" (updateTv shows "Unknown" on its own error)
+  if (!stOn) updateTv(); // the Alexa TV panel is hidden when SmartThings is connected
 }
 
 // Slider: debounce so dragging sends one command
