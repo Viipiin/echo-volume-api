@@ -2,7 +2,7 @@
 // group, endlessly, like Surprise. Each phrase ("lofi study beats") starts an Apple Music mix; after a few tracks the
 // next phrase takes over (a station list in server.js's queue), mixing in a healing-frequency phrase every few tracks
 // when that's on. Everything Alexa is asked goes through server.js (setVolume, playMusic via the queue), so commands
-// stay paced (COMMAND_GAP_MS).
+// stay paced (amazon-limiter.js, COMMAND_GAP_MS).
 //
 // Learning: a phrase skipped within 20 s counts against it; one that played a whole track (or 3 minutes), or whose
 // song was favourited, counts for it. Scores are kept per mood and phrase (±5), and fade by 10% a week.

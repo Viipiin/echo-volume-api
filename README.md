@@ -171,10 +171,20 @@ locks out phones using the old link. (`API_KEY` in `.env`, if set, is used inste
 ### Live updates and the Amazon rate limit
 
 Amazon's push connection sends volume, music, alarm, list, Bluetooth and equalizer changes as they happen, and the
-pages update instantly (also when someone talks to an Echo). Voice-style commands (volume, group music, seek, timers…)
-are rate limited by Amazon: a quick burst gets "Too many requests" and a 30–60 s delay. The server sends them one at a
-time, at least 1.5 s apart (`COMMAND_GAP_MS`), and for volume only the latest value of a burst of clicks. The console
-shows `⚠ Amazon: rate exceeded` when the limit is still hit.
+pages update instantly (also when someone talks to an Echo). Amazon rate limits its Alexa web API: a quick burst gets
+"Too many requests", and the request is then held 30–60 s before one retry. Its limits aren't published, so every
+request Echo Volume makes to Amazon goes through one gate (`amazon-limiter.js`):
+
+- **Commands** (playing music, speaking, volume, play/pause/next…) go one at a time, at least 1.5 s apart
+  (`COMMAND_GAP_MS`). For volume, only the latest value of a burst of clicks is sent.
+- **Reads** (what's playing, volumes, lists…) are spaced a little. Identical reads from several open pages are
+  answered by one request.
+- **When Amazon throttles anyway** (`⚠ Amazon: rate exceeded` in the console), commands slow down: the gap doubles,
+  up to 12 s, and reads slow down for a minute. After a few commands go through, it eases back to normal.
+  `GET /api/health` shows the current gap (`amazon.gapMs`) and how long the slow-down lasts (`amazon.throttledUntil`).
+
+Bursts still happen when many things change at once (a scene with many steps, a mood starting, several pages and
+phones open). They cost a short wait now, instead of a 30–60 s stall.
 
 ## API
 
