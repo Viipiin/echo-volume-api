@@ -319,6 +319,9 @@ app.use('/api', (req, res, next) => {
   });
   activity.run(entry, next);
 });
+// What changed (release-notes.js), and the update this install last had: the pages show what's new once after it
+app.get('/api/release-notes', (_req, res) => res.json({ version: APP_VERSION, updated: store.updated || null, releases: releaseNotes.RELEASES }));
+
 // The log itself (works before signing in to Amazon)
 app.get('/api/activity', (req, res) => {
   const { status, source, kind, q: text, before, limit, top } = req.query;
@@ -455,12 +458,24 @@ const store = {
   notify: { alerts: true, songs: false }, phone: { enabled: false, key: '' }, crossfade: 0,
   celebrations: [], celebrate: { enabled: true, time: '09:00', device: 'all', sound: '' }, celebrated: {},
 };
+const hadStore = fs.existsSync(STORE_FILE); // false on a new install
 try { Object.assign(store, JSON.parse(fs.readFileSync(STORE_FILE, 'utf8'))); } catch {}
 // Settings added in later versions: filled in for files written before them (what's in the file always wins)
 store.notify = { alerts: true, songs: false, moods: true, ...store.notify };
 store.celebrate = { enabled: true, time: '09:00', device: 'all', sound: '', ...store.celebrate };
 store.phone = { enabled: false, key: '', ...store.phone };
 store.moods = require('./moods').migrate(store.moods, console.log);
+// Which version last ran: when it changes, the pages show "What's new" once (release-notes.js). A file from before
+// versions were recorded is an update from the release before this one; a new install has nothing to catch up on.
+const APP_VERSION = require('./package.json').version;
+const releaseNotes = require('./release-notes');
+if (releaseNotes.RELEASES[0]?.version !== APP_VERSION) console.log(`⚠ release-notes.js has no entry for version ${APP_VERSION} yet: "What's new" will show older notes`);
+if (store.appVersion !== APP_VERSION) {
+  const from = store.appVersion || (hadStore ? releaseNotes.RELEASES[1]?.version || null : null);
+  if (from && releaseNotes.newer(APP_VERSION, from)) store.updated = { from, to: APP_VERSION, at: Date.now() };
+  store.appVersion = APP_VERSION;
+  if (hadStore) setImmediate(() => saveStore());
+}
 
 // A JSON file written a moment after the last change, one write at a time, through a temp file (a crash mid-write
 // can't leave half a file). Whatever is still waiting is written when the process exits.
