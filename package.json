@@ -1,7 +1,7 @@
 {
   "name": "echo-volume-api",
   "productName": "Echo Volume",
-  "version": "5.1.0",
+  "version": "5.2.0",
   "description": "Control Echo Show and Samsung TV volume from your laptop",
   "main": "desktop/main.js",
   "scripts": {
@@ -40,6 +40,7 @@
       "focus-presets.js",
       "amazon-limiter.js",
       "activity-log.js",
+      "release-notes.js",
       "mood-player.js",
       "desktop/**",
       "public/**",

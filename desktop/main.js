@@ -437,7 +437,8 @@ app.whenReady().then(() => {
     // Started with Windows: wait in the tray. After an update (the installer passes --updated): say so.
     if (!process.argv.includes('--hidden')) createMainWindow();
     if (process.argv.includes('--updated') && Notification.isSupported()) {
-      new Notification({ title: `Echo Volume ${app.getVersion()}`, body: 'Updated: a new look, Moods (tray menu and Ctrl+Alt+M), and 120 fresh songs on every Top songs refresh.', icon: path.join(ROOT, 'build', 'icon.png') }).show();
+      const notes = require('../release-notes').RELEASES.find((r) => r.version === app.getVersion()); // what's new, in the app too
+      new Notification({ title: `Echo Volume ${app.getVersion()}`, body: `Updated: ${notes?.headline || 'see What\'s new in the app'}.`, icon: path.join(ROOT, 'build', 'icon.png') }).show();
     }
     registerHotkeys();
     if (failedHotkeys.length) console.log('Hotkeys unavailable:', failedHotkeys.join(', '));

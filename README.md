@@ -212,6 +212,18 @@ on **Problems** so you can check now and then and fix what isn't working.
 The API is `GET /api/activity` (`?status=issues`, `source=`, `q=`, `top=1`, `before=`, `limit=`), `GET /api/activity/:id`
 (an entry with its steps), `GET /api/activity/reads?hours=24`, `GET /api/activity/export` and `POST /api/activity/clear`.
 
+## What's new (release notes)
+
+After an update, Echo Volume shows **What's new** once on each device (this PC, the desktop app, a phone), with
+everything that changed since the version that device last saw. You can open it any time from **What's new** at the
+bottom of the menu, or from **Settings → About Echo Volume**. The desktop app's "Updated" notification uses the same
+notes. A new install doesn't show it.
+
+For a new release, raise `version` in `package.json` and add an entry at the top of `release-notes.js`: the version,
+the date, a one-line headline, and items marked `new`, `improved` or `fixed`, written for the people using the app.
+Add `where` (for example `Moods`) and the note gets a link to that screen. The server logs a warning when the newest
+entry doesn't match `package.json`.
+
 ## API
 
 All endpoints are under `/api`. `device` accepts an Echo or group name (or part of it) or serial; omit it if

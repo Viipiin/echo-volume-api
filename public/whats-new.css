@@ -1,0 +1,29 @@
+/* Echo Volume: "What's new" (whats-new.js). Theme tokens only, so all four themes work. */
+.side .whatsnew { margin-top: auto; justify-content: flex-start; width: 100%; position: relative; }
+.side .whatsnew + .collapse { margin-top: 0; }
+.side .whatsnew small { color: var(--faint); font-weight: 500; margin-left: 4px; }
+.wn-dot { position: absolute; top: 9px; left: 24px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--surface-1); }
+@media (min-width: 761px) { .shell.mini .side .whatsnew { justify-content: center; padding: 0; } }
+
+.wn { display: flex; flex-direction: column; gap: var(--sp-5); }
+.wn-rel + .wn-rel { border-top: 1px solid var(--line); padding-top: var(--sp-5); }
+.wn-head { display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-2); }
+.wn-ver { font: 650 20px var(--font-display); color: var(--text); }
+.wn-badge { font-size: 11px; font-weight: 650; padding: 2px 8px; border-radius: var(--r-pill); background: var(--accent-tint); color: var(--accent); }
+.wn-date { font-size: var(--fs-sm); color: var(--muted); margin-left: auto; }
+.wn-headline { margin: 6px 0 0; color: var(--muted); font-size: 15px; }
+.wn-group { margin-top: var(--sp-4); }
+.wn-type { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.wn-type.new { color: var(--accent); }
+.wn-type.improved { color: var(--ok); }
+.wn-type.fixed { color: var(--warn); }
+.wn ul { margin: 6px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; color: var(--text); font-size: 14.5px; line-height: 1.5; }
+.wn-where { all: unset; display: inline-block; margin-left: 4px; padding: 0 8px; border-radius: var(--r-pill); font-size: 11.5px; font-weight: 600; line-height: 20px;
+  background: var(--field); border: 1px solid var(--line); color: var(--muted); vertical-align: 1px; }
+button.wn-where { cursor: pointer; color: var(--accent); border-color: var(--accent-line); }
+button.wn-where:hover { background: var(--accent-tint); }
+button.wn-where:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.wn-older summary { cursor: pointer; color: var(--muted); font-weight: 600; font-size: 14px; padding: var(--sp-2) 0; }
+.wn-older summary:hover { color: var(--text); }
+.wn-older .wn-rel { margin-top: var(--sp-4); }
+.wn-older .wn-rel + .wn-rel { padding-top: var(--sp-4); }
