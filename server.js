@@ -31,6 +31,12 @@ const CFG = {
 };
 
 const alexa = new Alexa();
+// Every request to Amazon goes through one gate (amazon-limiter.js): commands one at a time and spaced, reads spaced
+// and shared, all of it slower for a while after Amazon throttles
+const amazonGate = require('./amazon-limiter');
+const PACE_MS = Number(process.env.COMMAND_GAP_MS || 1500);
+const limiter = amazonGate.createLimiter({ baseGap: PACE_MS, log: (m) => console.log('⚠ ' + m) });
+amazonGate.attach(alexa, limiter);
 const events = new (require('events'))(); // 'listening', 'listen-error', 'login-needed', 'ready'
 let ready = false;
 const lastVolume = {}; // serial -> volume before mute
@@ -65,7 +71,11 @@ const startAlexa = () => alexa.init({
   acceptLanguage: CFG.lang,
   useWsMqtt: true, // Amazon's push connection: volume, music, alarm and list changes arrive instantly
   cookieRefreshInterval: 7 * 24 * 60 * 60 * 1000, // refresh weekly
-  logger: (m) => { if (/Retrying once/.test(m)) console.log('⚠ Amazon:', m.replace(/^Alexa-Remote: /, '')); },
+  logger: (m) => {
+    if (!/Retrying once/.test(m)) return;
+    console.log('⚠ Amazon:', m.replace(/^Alexa-Remote: /, ''));
+    if (amazonGate.THROTTLE_LOG.test(m)) limiter.throttled();
+  },
 }, (err) => {
   if (err) {
     // First run: alexa-remote2 starts a login proxy and reports it as an "error"
@@ -88,19 +98,10 @@ const startAlexa = () => alexa.init({
 // ---------- helpers ----------
 const p = (fn) => new Promise((res, rej) => fn((e, r) => (e ? rej(e) : res(r))));
 
-// Voice-style (sequence) commands, paced. Commands sent too close together get "Too many requests",
-// and alexa-remote2 then waits 30-60s before retrying once. So send them one at a time, a minimum gap apart.
-const PACE_MS = Number(process.env.COMMAND_GAP_MS || 1500);
-let paceChain = Promise.resolve(), paceLast = 0;
+// Voice-style (sequence) commands. Commands sent too close together get "Too many requests", and alexa-remote2
+// then waits 30-60s before retrying once; the request gate (see the top) sends them one at a time, spaced.
 function sequence(serial, command, value) {
-  const run = paceChain.then(async () => {
-    const waitMs = paceLast + PACE_MS - Date.now();
-    if (waitMs > 0) await new Promise((r) => setTimeout(r, waitMs));
-    paceLast = Date.now();
-    return p((cb) => alexa.sendSequenceCommand(serial, command, value, cb));
-  });
-  paceChain = run.catch(() => {});
-  return run;
+  return p((cb) => alexa.sendSequenceCommand(serial, command, value, cb));
 }
 
 function resolveDevice(input) {
@@ -1394,7 +1395,8 @@ app.get('/api/smarthome', wrap(async (_req, res) => {
   })));
 }));
 
-app.get('/api/health', (_req, res) => res.json({ ready }));
+// amazon: how hard the request gate is holding back (gapMs between commands, throttledUntil while Amazon throttles)
+app.get('/api/health', (_req, res) => res.json({ ready, amazon: limiter.status() }));
 
 // Phone access in the desktop app, which listens on 127.0.0.1 only: while it's on, also listen on the network.
 // (`npm start` already listens on all interfaces.) Either way, other devices still need the key (see above).

@@ -38,6 +38,7 @@
       "alexa-features.js",
       "moods.js",
       "focus-presets.js",
+      "amazon-limiter.js",
       "mood-player.js",
       "desktop/**",
       "public/**",
