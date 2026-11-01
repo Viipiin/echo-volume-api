@@ -5,7 +5,7 @@
 // stay paced (amazon-limiter.js, COMMAND_GAP_MS).
 //
 // Learning: a phrase skipped within 20 s counts against it; one that played a whole track (or 3 minutes), or whose
-// song was favourited, counts for it. Scores are kept per mood and phrase (±5), and fade by 10% a week.
+// song was favourited, counts for it; one Alexa answered "I couldn't find…" for counts strongly against it. Scores are kept per mood and phrase (±5), and fade by 10% a week.
 // Phrases played in the last 3 days are left out while there are others.
 const express = require('express');
 const M = require('./moods');
@@ -22,10 +22,11 @@ module.exports = function moodPlayer(ctx) {
     if (!m) throw httpErr(404, `Unknown mood "${id}". GET /api/moods lists them.`);
     return m;
   };
-  const SKIP_MS = 20000, DONE_MS = 180000, VERIFY_MS = 12000, MAX_FAILS = 3, TRACKS_PER_PHRASE = 4, SETTLE_MS = 400, SEEN_MS = M.LIMITS.seenDays * 86400000;
+  const SKIP_MS = 20000, DONE_MS = 180000, VERIFY_MS = 12000, MAX_FAILS = 3, NOT_FOUND = -3, TRACKS_PER_PHRASE = 4, SETTLE_MS = 400, SEEN_MS = M.LIMITS.seenDays * 86400000;
 
   let cur = null; // the mood playing: { serial, device, mood, opts, item, startedAt, phraseAt, tracks, fails, ratio, layer, cadence }
   let gen = 0; // newer play requests win over older ones still waiting for the volume
+  const logs = new Map(); // activity entry id → { mood, query } of each recent phrase, for Alexa's reply (onNotFound)
 
   // ---------- phrases ----------
   const parse = (s) => { const [text, e] = s.split('|'); return { text, energy: Number(e) || null }; };
@@ -131,6 +132,10 @@ module.exports = function moodPlayer(ctx) {
       if (c.item && c.item !== item) finishPhrase(c);
       c.item = item; c.phraseAt = Date.now(); c.tracks = 0;
       item.log = activity.current(); // this phrase's activity entry (server.js playlistPlay)
+      if (item.log && item.layer === 'mood') {
+        logs.set(item.log.id, { mood: c.mood, query: item.query });
+        if (logs.size > 50) logs.delete(logs.keys().next().value);
+      }
       activity.update(item.log, { title: item.layer === 'frequency' ? `${c.mood.name}: healing frequency “${item.query}”` : `${c.mood.name}: “${item.query}”` });
       if (item.layer === 'mood') { state().seen[key(c.mood, item.query)] = Date.now(); prune(); saveStore(); }
       emit('phrase');
@@ -153,27 +158,40 @@ module.exports = function moodPlayer(ctx) {
     },
   });
   // Did Apple Music start? If not (no result, Apple Music not linked, the Echo went offline), try another phrase,
-  // up to MAX_FAILS times in a row, then stop with a clear message.
+  // up to MAX_FAILS times in a row, then stop with a clear message. Checked VERIFY_MS after the command actually
+  // went (Amazon can hold it for seconds), and the track that was playing before still playing doesn't count:
+  // that's what an "I couldn't find…" leaves behind.
   function verify(c, item) {
-    setTimeout(async () => {
-      if (cur !== c || c.item !== item) return;
+    const check = async () => {
+      if (cur !== c || c.item !== item || item.finished) return;
+      const wait = item.sentAt ? item.sentAt + VERIFY_MS - Date.now() : 3000; // not sent yet: look again shortly
+      if (wait > 0) return void setTimeout(check, wait).unref?.();
       const i = await playerInfo(c.serial, true).catch(() => ({}));
-      if (cur !== c || c.item !== item) return;
-      const ok = i.state === 'PLAYING' && /apple/i.test(i.provider?.providerName || '');
-      if (ok) { c.fails = 0; activity.note(item.log, `Playing on Apple Music${i.infoText?.title ? `: ${i.infoText.title}${i.infoText.subText1 ? ` · ${i.infoText.subText1}` : ''}` : ''}`); return; }
-      if (i.state === 'PAUSED' && i.infoText?.title) return; // paused by someone: leave it
-      c.fails = (c.fails || 0) + 1;
-      (c.failed ||= []).push(item.query);
-      item.finished = true; // not the phrase's fault as such: no score
-      console.log(`Mood "${c.mood.name}": "${item.query}" didn't start (${i.state || 'no state'}${i.provider?.providerName ? `, ${i.provider.providerName}` : ''})`);
-      activity.note(item.log, `Nothing started within ${VERIFY_MS / 1000}s (${i.state || 'no player state'}${i.provider?.providerName ? `, ${i.provider.providerName}` : ''}): trying the next phrase`, 'problem');
-      if (c.fails >= MAX_FAILS) {
-        // Most often Alexa answered "I couldn't find any …": Apple Music only finds artist, song, album and playlist names
-        c.error = `Nothing started on ${c.device} for "${c.failed.slice(-MAX_FAILS).join('", "')}". If Alexa said "I couldn't find…", edit the mood's phrases to artist, song, album or playlist names. Otherwise check that the Echo is online and Apple Music is linked in the Alexa app (Settings → Music & Podcasts).`;
-        return stopPlaylist(c.serial, 'error');
-      }
-      playlistStep(1).catch((e) => console.log('Mood: next phrase failed:', e.message));
-    }, VERIFY_MS).unref?.();
+      if (cur !== c || c.item !== item || item.finished) return;
+      const title = i.infoText?.title || null;
+      const stale = !!item.before && title === item.before;
+      const ok = i.state === 'PLAYING' && /apple/i.test(i.provider?.providerName || '') && !stale;
+      if (ok) { c.fails = 0; activity.note(item.log, `Playing on Apple Music${title ? `: ${title}${i.infoText.subText1 ? ` · ${i.infoText.subText1}` : ''}` : ''}`); return; }
+      if (i.state === 'PAUSED' && title && !stale) return; // paused by someone: leave it
+      const why = stale ? `Still playing the track from before (${title}): Alexa most likely didn't find this phrase`
+        : `Nothing started within ${VERIFY_MS / 1000}s (${i.state || 'no player state'}${i.provider?.providerName ? `, ${i.provider.providerName}` : ''})`;
+      fail(c, item, why);
+    };
+    setTimeout(check, VERIFY_MS).unref?.();
+  }
+  // This phrase didn't play: no score (Alexa's reply decides that, onNotFound), on to the next one
+  function fail(c, item, why) {
+    c.fails = (c.fails || 0) + 1;
+    (c.failed ||= []).push(item.query);
+    item.finished = true;
+    console.log(`Mood "${c.mood.name}": "${item.query}" didn't start: ${why}`);
+    activity.note(item.log, `${why}: trying the next phrase`, 'problem');
+    if (c.fails >= MAX_FAILS) {
+      // Most often Alexa answered "I couldn't find any …": Apple Music only finds artist, song, album and playlist names
+      c.error = `Nothing started on ${c.device} for "${c.failed.slice(-MAX_FAILS).join('", "')}". If Alexa said "I couldn't find…", edit the mood's phrases to artist, song, album or playlist names. Otherwise check that the Echo is online and Apple Music is linked in the Alexa app (Settings → Music & Podcasts).`;
+      return stopPlaylist(c.serial, 'error');
+    }
+    playlistStep(1).catch((e) => console.log('Mood: next phrase failed:', e.message));
   }
   function prune() {
     const s = state(), old = Date.now() - SEEN_MS;
@@ -326,6 +344,18 @@ module.exports = function moodPlayer(ctx) {
     router, now, play, next, stop,
     // Next pressed in the app soon after a phrase started: that phrase was a miss
     onSkip(run) { const c = cur; if (c && run.serial === c.serial && Date.now() - c.phraseAt < SKIP_MS) finishPhrase(c, 'skip'); },
+    // Alexa answered "I couldn't find…" for a phrase (server.js, from voice history): Apple Music doesn't have it, so it
+    // counts strongly against it (it then rarely comes up, and comes back as the score fades); still playing: next
+    onNotFound(entry) {
+      const p = logs.get(entry?.id);
+      if (!p) return;
+      logs.delete(entry.id);
+      score(p.mood, p.query, NOT_FOUND);
+      saveStore();
+      activity.note(entry, 'Apple Music doesn\'t have this phrase: it will rarely be picked again');
+      const c = cur;
+      if (c && c.item?.log === entry && !c.item.finished) fail(c, c.item, 'Alexa couldn\'t find it on Apple Music');
+    },
     // A song favourited while a mood plays (on the Echo music plays on)
     onFavorite() { const c = cur; if (c && c.item?.layer === 'mood' && c.serial === store.musicDevice) { score(c.mood, c.item.query, 1); saveStore(); } },
   };

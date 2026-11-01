@@ -6,6 +6,17 @@
 // where (optional): the screen it's on, so people can find it
 const RELEASES = [
   {
+    version: '5.2.1', date: '2026-11-01',
+    headline: 'Moods move on when Apple Music can\'t find a phrase',
+    items: [
+      { type: 'fixed', where: 'Moods', text: 'When Alexa answered "I couldn\'t find…", the track from before kept playing and the mood took that as its phrase working (and sometimes learned to like it). Now the mood notices, plays the next phrase, and picks that phrase rarely from then on.' },
+      { type: 'fixed', where: 'Moods', text: 'A phrase is no longer marked "Nothing started" while Amazon was still holding the play command.' },
+      { type: 'improved', where: 'Moods', text: 'Phrases Apple Music couldn\'t find (hindi ghazals, hindi club songs, hindi morning songs, morning bhajans…) are replaced by artists it does find (Jagjit Singh, Badshah, Lucky Ali, Anuradha Paudwal…).' },
+      { type: 'fixed', where: 'Search', text: 'Remixes and live versions ("Sufi (Venky Remix)") now play: the version in brackets is left out of what Alexa is asked, which made it miss the song.' },
+      { type: 'fixed', where: 'Activity', text: 'Alexa\'s reply is now found for healing-frequency phrases like "40 Hz gamma waves".' },
+    ],
+  },
+  {
     version: '5.2.0', date: '2026-11-01',
     headline: 'Activity log, a Hindi-English-Punjabi mix for moods, and far fewer Amazon delays',
     items: [
