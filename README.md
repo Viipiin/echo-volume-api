@@ -186,6 +186,32 @@ request Echo Volume makes to Amazon goes through one gate (`amazon-limiter.js`):
 Bursts still happen when many things change at once (a scene with many steps, a mood starting, several pages and
 phones open). They cost a short wait now, instead of a 30–60 s stall.
 
+## Activity log
+
+The **Activity** screen (in the menu, or under More on a phone) lists everything Echo Volume was asked to do, what
+it sent to Amazon and what actually happened. It keeps 30 days in `activity.json`, next to `ui-state.json`, and opens
+on **Problems** so you can check now and then and fix what isn't working.
+
+- **What's recorded:**
+  - every action from the PC, a phone, the desktop tray (quick controls, hotkeys) or the API
+  - scenes, with each step underneath, and scheduled runs
+  - mood phrases and queued songs, under the action that started them
+  - birthday announcements
+  - Amazon itself: throttling, retries, signing in
+- **What happened:**
+  - the status: OK, **Problem** (it ran but didn't do what was meant) or **Failed** (an error)
+  - each Amazon call, with how long it waited in the request gate and how long Amazon took
+  - for voice-style commands and music, **what Alexa heard and said**, matched from voice history about 12 s
+    later. A reply like "I couldn't find any … on Apple Music" makes the entry a problem.
+  - for moods, whether music really started, and whether a phrase was skipped or played through
+- A step that goes wrong marks its scene as a problem too. Search finds phrases, Echo names, errors and Alexa's words.
+  **Export** saves the whole log as JSON.
+- **Background reads** (what's playing, volumes…) are too many to list one by one. They're counted per endpoint and
+  hour, at the bottom of the screen.
+
+The API is `GET /api/activity` (`?status=issues`, `source=`, `q=`, `top=1`, `before=`, `limit=`), `GET /api/activity/:id`
+(an entry with its steps), `GET /api/activity/reads?hours=24`, `GET /api/activity/export` and `POST /api/activity/clear`.
+
 ## API
 
 All endpoints are under `/api`. `device` accepts an Echo or group name (or part of it) or serial; omit it if

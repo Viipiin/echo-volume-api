@@ -39,6 +39,7 @@
       "moods.js",
       "focus-presets.js",
       "amazon-limiter.js",
+      "activity-log.js",
       "mood-player.js",
       "desktop/**",
       "public/**",

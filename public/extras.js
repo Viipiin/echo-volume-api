@@ -108,6 +108,7 @@
     on('activity', (d) => addHistory(d));
     on('scene', (d) => sceneProgress(d));
     on('mood', (d) => window.onMoodEvent?.(d)); // moods-ui.js
+    on('log', (d) => window.onLogEvent?.(d)); // activity-ui.js
     on('theme', (d) => applyTheme(d.theme));
     on('alert', (d) => notifyHere(d, false));
     on('song', (d) => notifyHere(d, true));
