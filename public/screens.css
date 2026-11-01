@@ -65,13 +65,13 @@ section.tab > .card, section.tab > div > .card { margin-bottom: var(--sp-4); }
 .mlabel { font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin: var(--sp-4) 0 var(--sp-2); }
 .mlabel small { text-transform: none; letter-spacing: 0; font-weight: 400; }
 /* Buttons in the older markup look like .btn */
-:is(.row, .tv, .chips, .keys, .apps, .podbtns, .plnew, .presets, .mvol, .np .ctl, .tvset, .xform, .sbtns, .aact, .step, .sched, .row2, .back, .podpanel, .xcard, .items, .queue, .msearch) button:where(:not(.tile, .fav, .pladd, .mood-tile, .chip, [role=menuitemradio], .seg button)) {
+:is(.row, .tv, .chips, .keys, .apps, .podbtns, .plnew, .presets, .mvol, .np .ctl, .tvset, .xform, .sbtns, .aact, .step, .sched, .row2, .back, .podpanel, .xcard, .items, .queue, .msearch) button:where(:not(.tile, .fav, .pladd, .mood-tile, .chip, .act-line, [role=menuitemradio], .seg button)) {
   font: 600 13.5px/1 var(--font); min-height: 36px; padding: 0 14px; border-radius: var(--r-md); cursor: pointer;
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   border: 1px solid var(--line); background: var(--surface-1); color: var(--text);
   transition: transform var(--d-fast) var(--ease), box-shadow 200ms var(--ease), background var(--d-fast), border-color var(--d-fast), color var(--d-fast);
 }
-:is(.row, .tv, .chips, .keys, .apps, .podbtns, .plnew, .presets, .mvol, .np .ctl, .tvset, .xform, .sbtns, .aact, .step, .sched, .row2, .back, .podpanel, .xcard, .items, .queue, .msearch) button:where(:not(.tile, .fav, .pladd, .mood-tile, .chip, [role=menuitemradio], .seg button)):hover:not(:disabled) { background: var(--surface-2); border-color: var(--accent-line); color: var(--accent); }
+:is(.row, .tv, .chips, .keys, .apps, .podbtns, .plnew, .presets, .mvol, .np .ctl, .tvset, .xform, .sbtns, .aact, .step, .sched, .row2, .back, .podpanel, .xcard, .items, .queue, .msearch) button:where(:not(.tile, .fav, .pladd, .mood-tile, .chip, .act-line, [role=menuitemradio], .seg button)):hover:not(:disabled) { background: var(--surface-2); border-color: var(--accent-line); color: var(--accent); }
 :is(.row, .tv, .chips, .keys, .apps, .podbtns, .plnew, .presets, .np .ctl, .tvset, .xform, .sbtns, .aact, .step, .sched, .row2, .back, .podpanel, .xcard) button:active:not(:disabled) { transform: translateY(1px) scale(0.98); }
 :is(.tv, .xform, .sbtns, .podbtns, .plnew, .msearch, .xcard, .podpanel) button:is(.go, .primary), .msearch .go, .np .ctl button.main {
   background: var(--btn-primary) !important; color: var(--accent-ink) !important; border-color: transparent !important; box-shadow: var(--glow); }

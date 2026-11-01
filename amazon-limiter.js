@@ -66,7 +66,11 @@ const isCommand = (path, method) => /^\/api\/(behaviors\/|np\/command)/.test(pat
 // alexa-remote2 logs this just before it waits and retries a throttled request
 const THROTTLE_LOG = /rate exceeded|too many requests|throttl/i;
 
-function attach(alexa, limiter) {
+// hooks.context(): who the request is for (captured when it's made); hooks.onCall(info, context) when it's answered:
+// { kind: 'command' | 'read', path, method, ms (Amazon's answer time), waited (in the gate), error, shared, retry, body }
+function attach(alexa, limiter, hooks = {}) {
+  const context = hooks.context || (() => null);
+  const report = (info, ctx) => { try { hooks.onCall?.(info, ctx); } catch {} };
   if (typeof alexa.httpsGetCall !== 'function') {
     console.log('⚠ Amazon request gate not installed: this alexa-remote2 version has no httpsGetCall');
     return false;
@@ -76,26 +80,38 @@ function attach(alexa, limiter) {
   alexa.httpsGetCall = (path, callback, flags = {}) => {
     // The library's own retries (after a throttle or a 503) already waited and belong to a request that holds
     // a place in the queue: queueing them again behind it would never finish
+    const method = (flags.method || 'GET').toUpperCase();
+    const ctx = context(), asked = Date.now();
     if (flags.isRetry) {
-      if (isCommand(path, (flags.method || 'GET').toUpperCase())) limiter.resent();
+      if (isCommand(path, method)) limiter.resent();
       return raw(path, callback, flags);
     }
-    const method = (flags.method || 'GET').toUpperCase();
     if (isCommand(path, method)) {
-      return limiter.write(() => new Promise((done) => raw(path, (err, body) => {
-        if (!err) limiter.wentThrough();
-        done();
-        if (callback) callback(err, body);
-      }, flags)));
+      return limiter.write(() => new Promise((done) => {
+        const sent = Date.now();
+        raw(path, (err, body) => {
+          if (!err) limiter.wentThrough();
+          report({ kind: 'command', path, method, ms: Date.now() - sent, waited: sent - asked, error: err?.message || null, body: flags.data || null }, ctx);
+          done();
+          if (callback) callback(err, body);
+        }, flags);
+      }));
     }
     const key = method === 'GET' && !flags.data ? `${flags.host || ''}${path}` : null;
-    if (key && inflight.has(key)) return void inflight.get(key).push(callback);
+    if (key && inflight.has(key)) {
+      inflight.get(key).push((err, body) => { report({ kind: 'read', path, method, ms: Date.now() - asked, waited: 0, error: err?.message || null, shared: true }, ctx); if (callback) callback(err, body); });
+      return;
+    }
     if (key) inflight.set(key, [callback]);
-    limiter.read(() => raw(path, (err, body) => {
-      const cbs = key ? inflight.get(key) : [callback];
-      if (key) inflight.delete(key);
-      for (const cb of cbs) if (cb) cb(err, body);
-    }, flags));
+    limiter.read(() => {
+      const sent = Date.now();
+      raw(path, (err, body) => {
+        report({ kind: 'read', path, method, ms: Date.now() - sent, waited: sent - asked, error: err?.message || null }, ctx);
+        const cbs = key ? inflight.get(key) : [callback];
+        if (key) inflight.delete(key);
+        for (const cb of cbs) if (cb) cb(err, body);
+      }, flags);
+    });
   };
   return true;
 }

@@ -35,9 +35,35 @@ const alexa = new Alexa();
 // and shared, all of it slower for a while after Amazon throttles
 const amazonGate = require('./amazon-limiter');
 const PACE_MS = Number(process.env.COMMAND_GAP_MS || 1500);
-const limiter = amazonGate.createLimiter({ baseGap: PACE_MS, log: (m) => console.log('⚠ ' + m) });
-amazonGate.attach(alexa, limiter);
-const events = new (require('events'))(); // 'listening', 'listen-error', 'login-needed', 'ready'
+const events = new (require('events'))(); // 'listening', 'listen-error', 'login-needed', 'ready', 'log'
+// Activity log (activity-log.js): what was asked, what went to Amazon, what happened; shown on the Activity screen
+const { createActivityLog, matchReplies, parseCommand } = require('./activity-log');
+const logChanged = new Map(); // entries changed in the last moment: sent to open pages twice a second at most
+let logFlush = null;
+const activity = createActivityLog({
+  file: path.join(DATA_DIR, 'activity.json'),
+  log: (m) => console.log(m),
+  onChange: (e) => {
+    logChanged.set(e.id, e);
+    logFlush ||= setTimeout(() => { logFlush = null; events.emit('log', [...logChanged.values()]); logChanged.clear(); }, 500);
+  },
+});
+process.on('exit', () => activity.flush());
+const limiter = amazonGate.createLimiter({
+  baseGap: PACE_MS,
+  log: (m) => { console.log('⚠ ' + m); if (/normally again/.test(m)) activity.event({ source: 'amazon', kind: 'amazon', title: m }); },
+});
+// Voice-style commands and music requests: Alexa's reply is looked up in voice history afterwards (checkReplies)
+amazonGate.attach(alexa, limiter, {
+  context: () => activity.current(),
+  onCall: (info, entry) => {
+    activity.amazonCall(info, entry);
+    if (info.kind === 'command' && entry && /^\/api\/behaviors\/preview/.test(info.path) && /Alexa\.TextCommand|PlaySearchPhrase/.test(info.body || '')) {
+      const cmd = parseCommand(info.body);
+      if (cmd.serial) { activity.expectReply(cmd.serial, entry, cmd.text); scheduleReplies(); }
+    }
+  },
+});
 let ready = false;
 const lastVolume = {}; // serial -> volume before mute
 const recentSet = {}; // serial -> { v, at }: volume we just set
@@ -74,7 +100,12 @@ const startAlexa = () => alexa.init({
   logger: (m) => {
     if (!/Retrying once/.test(m)) return;
     console.log('⚠ Amazon:', m.replace(/^Alexa-Remote: /, ''));
-    if (amazonGate.THROTTLE_LOG.test(m)) limiter.throttled();
+    if (amazonGate.THROTTLE_LOG.test(m)) {
+      limiter.throttled();
+      const wait = Math.round(Number(m.match(/in (\d+)ms/)?.[1] || 0) / 1000);
+      activity.event({ source: 'amazon', kind: 'amazon', status: 'problem',
+        title: `Amazon throttled a request: held ${wait}s before one retry. Commands now ${limiter.status().gapMs / 1000}s apart for a while` });
+    } else activity.event({ source: 'amazon', kind: 'amazon', status: 'problem', title: 'Amazon answered "503 unavailable": retried once' });
   },
 }, (err) => {
   if (err) {
@@ -83,10 +114,12 @@ const startAlexa = () => alexa.init({
     console.log(`\n➡  Open http://localhost:${CFG.proxyPort} in a browser and sign in to Amazon (${CFG.amazonPage}).`);
     console.log('   After login, restart this server.\n');
     events.emit('login-needed', `http://localhost:${CFG.proxyPort}`);
+    activity.event({ source: 'amazon', kind: 'amazon', status: 'failed', title: `Not signed in to Amazon: open http://localhost:${CFG.proxyPort} to sign in` });
     return;
   }
   ready = true;
   events.emit('ready');
+  activity.event({ source: 'amazon', kind: 'amazon', title: `Signed in to Alexa: ${Object.keys(alexa.serialNumbers).length} devices` });
   console.log('✔ Connected to Alexa. Devices:');
   for (const s of Object.keys(alexa.serialNumbers)) {
     const d = alexa.serialNumbers[s];
@@ -221,6 +254,110 @@ app.use('/api', (req, res, next) => {
 
 const wrap = (fn) => (req, res) => fn(req, res).catch((e) =>
   res.status(e.status || 500).json({ error: e.message || String(e) }));
+
+// ---------- Activity log: every action asked of the server (GETs are reads: counted, not listed) ----------
+// Who asked: scenes and the schedule call this server themselves (x-ev-source, trusted from this PC only), the
+// pages say x-ev-client: app (this PC, or a phone when it comes from the network), the desktop tray says desktop;
+// anything else is an API call.
+const LOG_SKIP = /^\/(ui|activity|events)(\/|$)/;
+function logSource(req) {
+  const told = req.get('x-ev-source');
+  if (isLocal(req) && ['scene', 'schedule', 'mood', 'queue'].includes(told)) return told;
+  const client = req.get('x-ev-client');
+  if (client === 'desktop') return 'desktop';
+  if (!client) return 'api';
+  return isLocal(req) ? 'pc' : 'phone';
+}
+const devName = (d) => (d == null || d === '' ? null : d === 'all' ? 'All Echos' : alexa.serialNumbers?.[d]?.accountName || String(d));
+const quoted = (v) => `“${String(v ?? '').slice(0, 80)}”`;
+// A readable title for each kind of action ("Volume 40", "Play “…”"); unknown routes get their path
+const LOG_TITLES = [
+  [/^\/volume\/(up|down)$/, (m, b) => `Volume ${m[1]}${b.step ? ` by ${b.step}` : ''}`],
+  [/^\/volume$/, (_m, b) => `Volume ${b.level ?? b.volume ?? ''}`],
+  [/^\/(mute|unmute)$/, (m) => (m[1] === 'mute' ? 'Mute' : 'Unmute')],
+  [/^\/music\/play$/, (_m, b) => (b.query ? `Play ${quoted(b.item?.title || b.query)}${b.provider === 'TUNEIN' || b.item?.type === 'radio' ? ' (radio)' : ''}` : 'Resume music')],
+  [/^\/music\/surprise$/, (_m, b) => `Surprise mix (${b.kind || 'songs'})`],
+  [/^\/music\/playlists\/[^/]+\/play$/, () => 'Play a playlist'],
+  [/^\/music\/(pause|next|previous)$/, (m) => ({ pause: 'Pause music', next: 'Next track', previous: 'Previous track' }[m[1]])],
+  [/^\/music\/sleep$/, (_m, b) => (Number(b.minutes) ? `Sleep timer ${b.minutes} min` : 'Cancel sleep timer')],
+  [/^\/moods\/play$/, (_m, b) => `Mood: ${b.moodId}${b.language ? ` (${b.language})` : ''}`],
+  [/^\/moods\/(next|stop)$/, (m) => (m[1] === 'next' ? 'Mood: next phrase' : 'Stop the mood')],
+  [/^\/scenes\/[^/]+\/run$/, (_m, _b, req) => `Scene ${quoted(store.scenes?.find((x) => req.path.includes(x.id))?.name || 'scene')}`],
+  [/^\/scenes$/, (_m, b) => `Save scene ${quoted(b.scene?.name)}`],
+  [/^\/command$/, (_m, b) => `Alexa command ${quoted(b.text)}`],
+  [/^\/tv\/(on|off|mute|unmute)$/, (m) => `TV ${m[1]}`],
+  [/^\/tv\/volume(\/(up|down))?$/, (m, b) => `TV volume ${m[2] || b.level || ''}`],
+  [/^\/st\/tv\/power$/, (_m, b) => `TV ${b.on ? 'on' : 'off'} (SmartThings)`],
+  [/^\/st\/tv\/(.+)$/, (m, b) => `TV ${m[1].replace(/\//g, ' ')}${b.level != null ? ` ${b.level}` : b.appName ? ` ${b.appName}` : ''} (SmartThings)`],
+  [/^\/announce$/, (_m, b) => `Announce ${quoted(b.text)}`],
+  [/^\/routines\/run$/, () => 'Run an Alexa routine'],
+  [/^\/stop-all$/, () => 'Stop all audio'],
+  [/^\/dnd$/, (_m, b) => `Do Not Disturb ${b.enabled === false ? 'off' : 'on'}`],
+  [/^\/screen$/, (_m, b) => `Echo Show screen ${b.on === false ? 'off' : 'on'}`],
+  [/^\/sound$/, () => 'Sound effect'],
+  [/^\/alexa\/do$/, (_m, b) => `Alexa: ${b.action}`],
+  [/^\/smarthome\/devices\//, (_m, b) => `Smart home: ${b.action}${b.brightness != null ? ` ${b.brightness}%` : ''}`],
+];
+function logTitle(req) {
+  const b = req.body || {}, pth = req.path;
+  for (const [re, fn] of LOG_TITLES) { const m = pth.match(re); if (m) return fn(m, b, req); }
+  return `${req.method} ${pth}`;
+}
+app.use('/api', (req, res, next) => {
+  if (req.method === 'GET' || LOG_SKIP.test(req.path)) return next();
+  const source = logSource(req), parent = isLocal(req) ? req.get('x-ev-parent') : null;
+  const entry = activity.start({
+    source, kind: ['scene', 'schedule', 'mood', 'queue'].includes(source) ? 'automation' : 'action', title: logTitle(req),
+    device: devName(req.body?.device), detail: req.body, parent: parent && activity.get(parent) ? parent : null,
+  });
+  const json = res.json.bind(res);
+  res.json = (body) => { res.locals.logBody = body; return json(body); };
+  res.on('finish', () => {
+    const b = res.locals.logBody || {}, failed = res.statusCode >= 400;
+    if (res.locals.logOwned && !failed) return; // a scene: finished by runScene when its steps are done
+    activity.finish(entry, { status: failed ? 'failed' : 'ok', error: failed ? b.error || `HTTP ${res.statusCode}` : null, http: res.statusCode, result: failed ? null : b });
+  });
+  activity.run(entry, next);
+});
+// The log itself (works before signing in to Amazon)
+app.get('/api/activity', (req, res) => {
+  const { status, source, kind, q: text, before, limit, top } = req.query;
+  res.json({ entries: activity.query({ status, source, kind, q: text, before, limit: Number(limit) || 100, top: top === '1' }), summary: activity.summary(24), amazon: limiter.status() });
+});
+// Everything kept (30 days), as a file to save
+app.get('/api/activity/export', (_req, res) => {
+  res.setHeader('Content-Disposition', `attachment; filename="echo-volume-activity-${new Date().toISOString().slice(0, 10)}.json"`);
+  res.json({ exported: new Date().toISOString(), entries: activity.all(), reads: activity.readStats(24 * 30) });
+});
+app.get('/api/activity/reads', (req, res) => res.json(activity.readStats(Math.max(1, Math.min(24 * 30, Number(req.query.hours) || 24)))));
+app.get('/api/activity/:id', (req, res) => {
+  const e = activity.get(req.params.id);
+  if (!e) return res.status(404).json({ error: 'Not in the log (older than 30 days, or cleared)' });
+  res.json({ entry: e, children: activity.children(e.id), parent: e.parent ? activity.get(e.parent) : null });
+});
+app.post('/api/activity/clear', (_req, res) => { activity.clear(); res.json({ cleared: true }); });
+
+// Alexa's replies: about 12 s after a voice-style command or music request, one voice history read covers every
+// entry waiting; entries not found yet are tried once more (history can lag), then left without a reply
+let replyTimer = null;
+function scheduleReplies(delay = 12000) {
+  if (replyTimer) return;
+  replyTimer = setTimeout(() => activity.detached(checkReplies), delay); // not part of the entry that started the timer
+  replyTimer.unref?.();
+}
+async function checkReplies() {
+  replyTimer = null;
+  const waiting = activity.waitingForReply().filter((e) => Date.now() - e.reply.sentAt > 8000);
+  if (!waiting.length) { if (activity.waitingForReply().length) scheduleReplies(5000); return; }
+  const from = Math.min(...waiting.map((e) => e.reply.sentAt)) - 5000;
+  const r = await p((cb) => alexa.getCustomerHistoryRecords({ startTime: from, endTime: Date.now() + 60000, forceRequest: true }, cb)).catch((e) => {
+    console.log('Activity log: voice history failed:', e.message || e); return null;
+  });
+  const records = (Array.isArray(r) ? r : []).map((x) => ({ serial: x.deviceSerialNumber, at: Number(x.creationTimestamp) || 0, text: x.description?.summary || '', response: x.alexaResponse || '' }));
+  for (const { entry, record } of matchReplies(waiting, records)) activity.attachReply(entry, record);
+  for (const e of waiting) if (!e.alexa) activity.replyTried(e);
+  if (activity.waitingForReply().length) scheduleReplies(20000);
+}
 
 // SmartThings (independent of the Alexa login)
 app.use('/api/st', smartthings.router);
@@ -543,16 +680,31 @@ function stopPlaylist(serial, reason = 'replaced') {
   try { run.onEnd?.(run, reason); } catch (e) { console.log('Queue end hook failed:', e.message); }
 }
 // fadeIn: the volume to bring the song up to once it plays (it starts quiet, at the end of a crossfade)
+// Each item gets an entry in the activity log, under the action that started the list (later items, started by
+// the checks, find it on the run); a mood names the entry after its phrase (mood-player.js, onItem)
 async function playlistPlay(dev, list, index, fadeIn) {
   const item = list.items[index];
   if (!item) return stopPlaylist(null, 'end');
+  const prevRun = plRun;
+  const logParent = activity.current()?.id || (prevRun && prevRun.items === list.items ? prevRun.logParent : null);
+  const what = list.mood ? 'Mood phrase' : list.surprise ? 'Surprise' : list.id ? `Playlist ${store.playlists.find((x) => x.id === list.id)?.name ? `“${store.playlists.find((x) => x.id === list.id).name}”` : ''}`.trim() : 'Queue';
+  const entry = activity.start({
+    source: list.mood ? 'mood' : 'queue', kind: 'automation', title: `${what}: “${item.title || item.query}”${index ? ` (#${index + 1})` : ''}`,
+    device: dev.accountName, detail: { query: item.query, type: item.type, index }, parent: logParent,
+  });
+  try {
+    await activity.run(entry, () => playlistPlayItem(dev, list, index, fadeIn, item, logParent));
+    activity.finish(entry);
+  } catch (e) { activity.finish(entry, { status: 'failed', error: e.message || e }); throw e; }
+}
+async function playlistPlayItem(dev, list, index, fadeIn, item, logParent) {
   const hooks = { station: !!list.station, mood: list.mood, onItem: list.onItem, onTrack: list.onTrack, onEnd: list.onEnd };
   const prev = plRun;
-  const run = plRun = { serial: dev.serialNumber, list: list.id, items: list.items, more: list.more, surprise: list.surprise, ...hooks, index, title: null, at: Date.now(), idle: 0, tracks: 0 };
+  const run = plRun = { serial: dev.serialNumber, list: list.id, items: list.items, more: list.more, surprise: list.surprise, ...hooks, index, title: null, at: Date.now(), idle: 0, tracks: 0, logParent };
   if (prev && prev !== run && prev.onEnd && prev.onEnd !== run.onEnd) { try { prev.onEnd(prev, 'replaced'); } catch {} } // another list took over
   try { run.onItem?.(run, item); } catch (e) { console.log('Queue item hook failed:', e.message); }
   clearInterval(plTimer); clearTimeout(fadeTimer);
-  plTimer = setInterval(() => playlistCheck().catch((e) => console.log('Playlist check failed:', e.message)), 5000);
+  plTimer = activity.detached(() => setInterval(() => playlistCheck().catch((e) => console.log('Playlist check failed:', e.message)), 5000)); // its reads are counted, not this item's
   plTimer.unref?.();
   if (list.surprise) surpriseSeen(list.surprise, item);
   // Top up a few items before the end, in the background, so the next one starts without a wait
@@ -1417,13 +1569,13 @@ function syncLan() {
 features = require('./alexa-features')({
   alexa, p, sequence, resolveDevice, groupMembers, groupMember, commandDevice, textCommand, speakers, musicDevice,
   musicItem, art, store, saveStore, events, CFG, httpErr, wrap, volumeCache, nowCache, syncLan, isLocal, lanKey, stopPlaylist,
-  musicCountry: MUSIC_COUNTRY,
+  musicCountry: MUSIC_COUNTRY, activity,
 });
 app.use('/api', features.router);
 // Moods: how you feel or what you're doing → matching Apple Music, endlessly (mood-player.js)
 moodPlayer = require('./mood-player')({
   alexa, p, store, saveStore, events, httpErr, wrap, musicDevice, getVolume, setVolume, setSleep, playlistPlay, playlistStep, stopPlaylist,
-  playerInfo,
+  playerInfo, activity,
 });
 app.use('/api', moodPlayer.router);
 

@@ -21,7 +21,7 @@
     const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.tab) return showTab(b.dataset.tab);
     const cur = document.querySelector('#tabs .cur')?.dataset.tab;
-    const icons = { lists: 'list', alexa: 'alexa', smarthome: 'bulb', settings: 'settings' };
+    const icons = { lists: 'list', alexa: 'alexa', smarthome: 'bulb', activity: 'activity', settings: 'settings' };
     const t = await UI.menu(b, Object.keys(icons).map((tab) => ({ value: tab, label: label(tab), icon: icons[tab], checked: tab === cur })));
     if (t) showTab(t);
   });

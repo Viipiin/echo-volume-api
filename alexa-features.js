@@ -11,7 +11,7 @@ module.exports = function features(ctx) {
   const {
     alexa, p, sequence, resolveDevice, groupMembers, groupMember, commandDevice, textCommand, speakers, musicDevice,
     musicItem, art, store, saveStore, events, CFG, httpErr, wrap, volumeCache, nowCache, syncLan, isLocal, lanKey, musicCountry,
-    stopPlaylist,
+    stopPlaylist, activity,
   } = ctx;
   const router = express.Router();
   const asSequence = (startNode) => ({ '@type': 'com.amazon.alexa.behaviors.model.Sequence', startNode });
@@ -47,6 +47,7 @@ module.exports = function features(ctx) {
   setInterval(() => { for (const res of clients) res.write(': ping\n\n'); }, 25000).unref();
   events.on('theme', (theme) => broadcast('theme', { theme }));
   events.on('mood', (m) => broadcast('mood', m)); // mood-player.js: started, new phrase, new track, stopped
+  events.on('log', (list) => broadcast('log', { entries: list })); // activity log entries added or changed (server.js)
 
   function hookPush() {
     const media = (d) => {
@@ -632,14 +633,18 @@ module.exports = function features(ctx) {
   router.post('/scenes/:id/run', (req, res) => {
     const sc = store.scenes.find((x) => x.id === req.params.id);
     if (!sc) return res.status(404).json({ error: 'Scene not found' });
-    runScene(sc, 'run');
+    res.locals.logOwned = true; // this request's activity entry stays open until the steps are done (runScene)
+    runScene(sc, 'run', activity.current());
     res.json({ started: sc.name });
   });
 
-  // Each step calls this server's own API, so a scene does exactly what the matching button does
+  // Each step calls this server's own API, so a scene does exactly what the matching button does (and shows in the
+  // activity log as a step of the scene)
   async function self(method, url, body) {
+    const parent = activity.current()?.id;
     const r = await fetch(`http://127.0.0.1:${CFG.port}/api${url}`, {
-      method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined,
+      method, headers: { 'Content-Type': 'application/json', 'x-ev-source': activity.current()?.source === 'schedule' ? 'schedule' : 'scene', ...(parent && { 'x-ev-parent': parent }) },
+      body: body ? JSON.stringify(body) : undefined,
     });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(j.error || `HTTP ${r.status}`);
@@ -673,18 +678,24 @@ module.exports = function features(ctx) {
     },
   };
   const runningScenes = new Set();
-  async function runScene(sc, why) {
-    if (runningScenes.has(sc.id)) return;
+  // entry: the activity entry of the Run request; a scheduled run gets its own
+  async function runScene(sc, why, entry) {
+    entry ||= activity.start({ source: why === 'schedule' ? 'schedule' : 'scene', kind: 'automation', title: `Scene “${sc.name}”` });
+    activity.update(entry, { title: `Scene “${sc.name}”${why === 'schedule' ? ` (scheduled, ${sc.schedule?.time})` : ''}` });
+    if (runningScenes.has(sc.id)) return activity.finish(entry, { status: 'problem', error: 'Already running: this run was skipped' });
     runningScenes.add(sc.id);
     console.log(`Scene "${sc.name}" (${why})`);
     const errors = [];
     broadcast('scene', { id: sc.id, name: sc.name, status: 'running', step: 0, total: sc.steps.length });
-    for (const [i, st] of sc.steps.entries()) {
-      try { await STEP[st.type](st); } catch (e) { errors.push(`step ${i + 1} (${st.type}): ${e.message}`); }
-      broadcast('scene', { id: sc.id, name: sc.name, status: 'running', step: i + 1, total: sc.steps.length });
-    }
+    await activity.run(entry, async () => {
+      for (const [i, st] of sc.steps.entries()) {
+        try { await STEP[st.type](st); } catch (e) { errors.push(`step ${i + 1} (${st.type}): ${e.message}`); }
+        broadcast('scene', { id: sc.id, name: sc.name, status: 'running', step: i + 1, total: sc.steps.length });
+      }
+    });
     runningScenes.delete(sc.id);
     if (errors.length) console.log(`Scene "${sc.name}":`, errors.join('; '));
+    activity.finish(entry, { status: errors.length ? 'failed' : 'ok', error: errors.length ? errors.join('; ') : null });
     broadcast('scene', { id: sc.id, name: sc.name, status: errors.length ? 'error' : 'done', errors });
   }
   // Scheduled scenes: checked every 15s, each runs once per scheduled minute (only while Echo Volume runs)
@@ -786,13 +797,16 @@ module.exports = function features(ctx) {
     if (!due.length) return;
     celebrating = true;
     for (const c of due) {
+      const entry = activity.start({ source: 'schedule', kind: 'automation', title: `${c.type === 'anniversary' ? 'Anniversary' : 'Birthday'} announcement: ${c.name}` });
       try {
-        await announceCelebration(c, now);
+        await activity.run(entry, () => announceCelebration(c, now));
+        activity.finish(entry);
         store.celebrated[c.id] = today;
         saveStore();
         console.log(`Announced: ${celebrationText(c, now)}`);
         notify('alert', { title: c.type === 'anniversary' ? 'Anniversary today' : 'Birthday today', body: celebrationText(c, now) });
       } catch (e) {
+        activity.finish(entry, { status: 'failed', error: `${e.message} (tried again in a minute)` });
         console.log(`Announcing "${c.name}" failed:`, e.message);
         celebrateRetry = Date.now() + 60000;
         break;

@@ -87,7 +87,7 @@ const keyQuery = () => (process.env.API_KEY ? `?key=${encodeURIComponent(process
 async function api(url, body) {
   const r = await fetch(base + '/api' + url, {
     method: body ? 'POST' : 'GET',
-    headers: { 'Content-Type': 'application/json', ...(process.env.API_KEY && { 'x-api-key': process.env.API_KEY }) },
+    headers: { 'Content-Type': 'application/json', 'x-ev-client': 'desktop', ...(process.env.API_KEY && { 'x-api-key': process.env.API_KEY }) }, // tray, hotkeys
     body: body && JSON.stringify(body),
   });
   const j = await r.json().catch(() => ({}));

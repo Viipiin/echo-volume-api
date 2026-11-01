@@ -8,7 +8,7 @@ const key = (() => {
 })();
 const api = (url, body) => fetch('/api' + url, {
   method: body ? 'POST' : 'GET',
-  headers: { 'Content-Type': 'application/json', ...(key && { 'x-api-key': key }) },
+  headers: { 'Content-Type': 'application/json', 'x-ev-client': 'app', ...(key && { 'x-api-key': key }) }, // x-ev-client: the activity log tells pages from API calls
   body: body && JSON.stringify(body),
 }).then(async (r) => { const j = await r.json(); if (!r.ok) throw new Error(j.error); return j; });
 

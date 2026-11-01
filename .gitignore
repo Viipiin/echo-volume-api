@@ -12,6 +12,8 @@ st-token.json
 ui-state.json
 settings.json
 catalog-cache.json
+activity.json
+activity.json.tmp
 
 # Tooling / OS
 .playwright-cli/

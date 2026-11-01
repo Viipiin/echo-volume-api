@@ -13,6 +13,7 @@ const F = require('./focus-presets');
 
 module.exports = function moodPlayer(ctx) {
   const { alexa, p, store, saveStore, events, httpErr, wrap, musicDevice, getVolume, setVolume, setSleep, playlistPlay, playlistStep, stopPlaylist, playerInfo } = ctx;
+  const activity = ctx.activity || { current: () => null, update() {}, note() {}, event() {} }; // the activity log (server.js)
   const router = express.Router();
   const state = () => store.moods;
   const moods = () => M.resolveMoods(state());
@@ -101,6 +102,8 @@ module.exports = function moodPlayer(ctx) {
     const o = outcome || (c.tracks >= 2 || ms >= DONE_MS ? 'done' : 'stop');
     if (o === 'skip') score(c.mood, c.item.query, -1);
     if (o === 'done') score(c.mood, c.item.query, 0.5);
+    const how = { skip: `Skipped after ${Math.round(ms / 1000)}s: counts against this phrase`, done: `Played ${c.tracks >= 2 ? `${c.tracks} tracks` : 'for 3+ minutes'}: counts for this phrase`, stop: `Ended after ${Math.round(ms / 1000)}s` }[o];
+    if (how) activity.note(c.item.log, how);
     const s = state();
     s.history.push({ m: c.mood.id, k: c.item.query, at: c.phraseAt, s: Math.round(ms / 1000), o });
     if (s.history.length > M.LIMITS.history) s.history.splice(0, s.history.length - M.LIMITS.history);
@@ -127,6 +130,8 @@ module.exports = function moodPlayer(ctx) {
       if (cur !== c) return;
       if (c.item && c.item !== item) finishPhrase(c);
       c.item = item; c.phraseAt = Date.now(); c.tracks = 0;
+      item.log = activity.current(); // this phrase's activity entry (server.js playlistPlay)
+      activity.update(item.log, { title: item.layer === 'frequency' ? `${c.mood.name}: healing frequency “${item.query}”` : `${c.mood.name}: “${item.query}”` });
       if (item.layer === 'mood') { state().seen[key(c.mood, item.query)] = Date.now(); prune(); saveStore(); }
       emit('phrase');
       verify(c, item);
@@ -142,6 +147,9 @@ module.exports = function moodPlayer(ctx) {
       finishPhrase(c);
       cur = null;
       emitStop(c, reason);
+      const why = { stopped: 'stopped', replaced: 'something else was played', sleep: 'sleep timer', end: 'the list ended', error: 'it kept failing' }[reason] || reason;
+      activity.event({ source: 'mood', kind: 'automation', status: reason === 'error' ? 'failed' : 'ok', device: c.device, parent: c.item?.log?.parent || null,
+        title: `Mood “${c.mood.name}” ended: ${why}${c.error ? `. ${c.error}` : ''}` });
     },
   });
   // Did Apple Music start? If not (no result, Apple Music not linked, the Echo went offline), try another phrase,
@@ -152,12 +160,13 @@ module.exports = function moodPlayer(ctx) {
       const i = await playerInfo(c.serial, true).catch(() => ({}));
       if (cur !== c || c.item !== item) return;
       const ok = i.state === 'PLAYING' && /apple/i.test(i.provider?.providerName || '');
-      if (ok) { c.fails = 0; return; }
+      if (ok) { c.fails = 0; activity.note(item.log, `Playing on Apple Music${i.infoText?.title ? `: ${i.infoText.title}${i.infoText.subText1 ? ` · ${i.infoText.subText1}` : ''}` : ''}`); return; }
       if (i.state === 'PAUSED' && i.infoText?.title) return; // paused by someone: leave it
       c.fails = (c.fails || 0) + 1;
       (c.failed ||= []).push(item.query);
       item.finished = true; // not the phrase's fault as such: no score
       console.log(`Mood "${c.mood.name}": "${item.query}" didn't start (${i.state || 'no state'}${i.provider?.providerName ? `, ${i.provider.providerName}` : ''})`);
+      activity.note(item.log, `Nothing started within ${VERIFY_MS / 1000}s (${i.state || 'no player state'}${i.provider?.providerName ? `, ${i.provider.providerName}` : ''}): trying the next phrase`, 'problem');
       if (c.fails >= MAX_FAILS) {
         // Most often Alexa answered "I couldn't find any …": Apple Music only finds artist, song, album and playlist names
         c.error = `Nothing started on ${c.device} for "${c.failed.slice(-MAX_FAILS).join('", "')}". If Alexa said "I couldn't find…", edit the mood's phrases to artist, song, album or playlist names. Otherwise check that the Echo is online and Apple Music is linked in the Alexa app (Settings → Music & Podcasts).`;

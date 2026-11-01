@@ -17,6 +17,7 @@
 <link rel="stylesheet" href="/ui.css">
 <link rel="stylesheet" href="/extras.css">
 <link rel="stylesheet" href="/screens.css">
+<link rel="stylesheet" href="/activity.css">
 </head>
 <body>
 <div class="bgfx" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -33,6 +34,7 @@
     <button type="button" data-tab="scenes"><svg class="i" aria-hidden="true"><use href="/icons.svg#scenes"/></svg><span class="l">Scenes</span></button>
     <button type="button" data-tab="alexa"><svg class="i" aria-hidden="true"><use href="/icons.svg#alexa"/></svg><span class="l">Alexa</span></button>
     <button type="button" data-tab="smarthome"><svg class="i" aria-hidden="true"><use href="/icons.svg#bulb"/></svg><span class="l">Smart home</span></button>
+    <button type="button" data-tab="activity"><svg class="i" aria-hidden="true"><use href="/icons.svg#activity"/></svg><span class="l">Activity</span></button>
     <button type="button" data-tab="settings"><svg class="i" aria-hidden="true"><use href="/icons.svg#settings"/></svg><span class="l">Settings</span></button>
   </nav>
   <button type="button" class="btn quiet collapse" id="sideToggle" aria-expanded="true" title="Collapse the menu"><svg class="i" aria-hidden="true"><use href="/icons.svg#chevron-left"/></svg><span class="l">Collapse</span></button>
@@ -232,6 +234,7 @@
   <div id="alexaTab"></div>
   </section>
   <section class="tab" data-tab="smarthome" hidden><div id="smarthomeTab"></div></section>
+  <section class="tab" data-tab="activity" hidden><div id="activityTab"></div></section>
   <section class="tab" data-tab="settings" hidden><div id="settingsTab"></div></section>
 </main>
 </div>
@@ -247,6 +250,7 @@
 <!-- Tabs, live updates and the newer features (uses the helpers in app.js) -->
 <script src="/extras.js"></script>
 <script src="/moods-ui.js"></script>
+<script src="/activity-ui.js"></script>
 <script src="/shell.js"></script>
 </body>
 </html>
