@@ -33,14 +33,7 @@
   };
 
   // ---------- Toasts (messages in the corner) ----------
-  function toast(title, body, err) {
-    const t = document.createElement('div');
-    t.className = 'toast' + (err ? ' err' : '');
-    t.innerHTML = `<b>${esc(title)}</b>${body ? `<span>${esc(body)}</span>` : ''}`;
-    $('toasts').append(t);
-    setTimeout(() => t.classList.add('out'), 4500);
-    setTimeout(() => t.remove(), 5000);
-  }
+  const toast = (title, body, err) => UI.toast(title, body, err);
 
   // ---------- Tabs ----------
   const tabLoaders = {}; // tab -> loads its data each time it's opened
@@ -49,10 +42,16 @@
     if (!document.querySelector(`section.tab[data-tab="${name}"]`)) name = 'home';
     tab = name;
     document.querySelectorAll('section.tab').forEach((s) => { s.hidden = s.dataset.tab !== name; });
-    document.querySelectorAll('#tabs button').forEach((b) => b.classList.toggle('cur', b.dataset.tab === name));
+    document.querySelectorAll('#tabs button').forEach((b) => {
+      b.classList.toggle('cur', b.dataset.tab === name);
+      if (b.dataset.tab === name) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+    });
     try { localStorage.setItem('tab', name); } catch {}
     tabLoaders[name]?.();
+    document.dispatchEvent(new CustomEvent('tabchange', { detail: name })); // shell.js: transition, tab bar, title bar
   }
+  window.showTab = showTab;
+  window.tabLoaders = tabLoaders;
   $('tabs').onclick = (e) => { const b = e.target.closest('[data-tab]'); if (b) showTab(b.dataset.tab); };
 
   // ---------- Stop all ----------
@@ -71,8 +70,8 @@
       let b = c.querySelector('.badges');
       if (!b) { b = document.createElement('div'); b.className = 'badges'; c.querySelector('.top').after(b); }
       const next = alerts.filter((a) => a.device === serial && a.type === 'timer' && a.status === 'ON' && a.at).sort((x, y) => x.at - y.at)[0];
-      b.innerHTML = (dnd[serial] ? '<span class="badge">🌙 Do Not Disturb</span>' : '')
-        + (next ? `<span class="badge timer" data-at="${next.at}">⏱ ${esc(next.label || 'Timer')} <span>${fmtLeft(next.at - Date.now())}</span></span>` : '');
+      b.innerHTML = (dnd[serial] ? `<span class="badge">${UI.icon('moon', 'sm')}Do Not Disturb</span>` : '')
+        + (next ? `<span class="badge timer" data-at="${next.at}">${UI.icon('timer', 'sm')}${esc(next.label || 'Timer')} <span>${fmtLeft(next.at - Date.now())}</span></span>` : '');
       b.hidden = !b.innerHTML;
     });
   }
@@ -90,7 +89,7 @@
   // ---------- Live updates (server-sent events from Amazon's push connection) ----------
   const live = document.createElement('span');
   live.className = 'live'; live.hidden = true; live.title = 'Changes from Amazon arrive instantly';
-  live.textContent = '● Live';
+  live.textContent = 'Live';
   document.querySelector('header .conn').after(live);
   let nowTimer = null;
   const refreshNowSoon = () => { clearTimeout(nowTimer); nowTimer = setTimeout(refreshNow, 600); };
@@ -108,6 +107,7 @@
     on('bluetooth', () => { if (tab === 'settings') loadBluetooth(); });
     on('activity', (d) => addHistory(d));
     on('scene', (d) => sceneProgress(d));
+    on('mood', (d) => window.onMoodEvent?.(d)); // moods-ui.js
     on('theme', (d) => applyTheme(d.theme));
     on('alert', (d) => notifyHere(d, false));
     on('song', (d) => notifyHere(d, true));
@@ -203,7 +203,7 @@
   function renderAlerts() {
     const row = (a, main, sub, actions) => `<div class="arow" data-id="${esc(a.id)}">
       <div class="amain">${main}</div><div class="asub">${sub}</div><div class="aact">${actions}</div></div>`;
-    const del = '<button data-act="delete" title="Delete" aria-label="Delete">✕</button>';
+    const del = `<button data-act="delete" title="Delete" aria-label="Delete">${UI.icon('close', 'sm')}</button>`;
     const tm = alerts.filter((a) => a.type === 'timer' && a.status !== 'OFF');
     $('alTimers').innerHTML = tm.length ? tm.map((a) => row(a,
       `<b class="countdown" ${a.at ? `data-at="${a.at}"` : ''}>${a.at ? fmtLeft(a.at - Date.now()) : 'Paused'}</b> ${esc(a.label || 'Timer')}`,
@@ -233,7 +233,7 @@
     try {
       if (t.dataset.act === 'toggle') { await api('/alerts/toggle', { id, on: t.checked }); alStatus(t.checked ? 'Alarm on' : 'Alarm off'); }
       if (t.dataset.act === 'delete') {
-        if (a?.type !== 'timer' && !confirm(`Delete this ${a?.type || 'item'}${a?.label ? ` “${a.label}”` : ''}?`)) return;
+        if (a?.type !== 'timer' && !(await UI.confirm(`Delete this ${a?.type || 'item'}${a?.label ? ` “${a.label}”` : ''}?`, { ok: 'Delete', danger: true }))) return;
         await api('/alerts/delete', { id });
         alerts = alerts.filter((x) => x.id !== id);
         renderAlerts(); decorateCards();
@@ -256,7 +256,7 @@
       const active = l.items.filter((i) => !i.completed), done = l.items.filter((i) => i.completed);
       const item = (i) => `<li data-item="${esc(i.id)}" data-version="${esc(i.version)}">
         <label><input type="checkbox" ${i.completed ? 'checked' : ''} aria-label="Done" /><span>${esc(i.value)}</span></label>
-        <button data-act="delete" title="Delete" aria-label="Delete ${esc(i.value)}">✕</button></li>`;
+        <button data-act="delete" title="Delete" aria-label="Delete ${esc(i.value)}">${UI.icon('close', 'sm')}</button></li>`;
       return `<div class="card xcard" data-list="${esc(l.id)}">
         <div class="top"><span class="name">${esc(l.name)}</span><span class="kind">${active.length} to do</span></div>
         <form class="xform addform"><input maxlength="200" placeholder="Add to ${esc(l.name)}…" aria-label="New item" /><button class="go" type="submit">Add</button></form>
@@ -291,7 +291,7 @@
 
   // ---------- Scenes ----------
   const scStatus = statusIn('scStatus');
-  let scenes = [], routines = null, sounds = null, editing = null;
+  let scenes = [], routines = null, sounds = null, moodList = [], editing = null;
   const DAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
   const DAY_LONG = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const ALEXA_DO = { weather: 'Weather', traffic: 'Traffic', flashbriefing: 'News (flash briefing)', goodmorning: 'Good morning',
@@ -299,6 +299,8 @@
   const STEPS = {
     volume: ['Echo volume', ['device', 'level']],
     music: ['Play music', ['device', 'query', 'provider']],
+    mood: ['Play a mood', ['device', 'mood', 'moodvol', 'moodsleep']],
+    moodstop: ['Stop the mood', []],
     pause: ['Pause music', ['device']],
     resume: ['Resume music', ['device']],
     sleep: ['Sleep timer', ['device', 'minutes']],
@@ -327,6 +329,9 @@
       case 'text': return `<input data-f="text" maxlength="250" placeholder="What Alexa says" value="${esc(s.text || '')}" />`;
       case 'routine': return `<select data-f="id" aria-label="Routine">${opts((routines || []).map((r) => [r.id, r.name]), s.id)}</select>`;
       case 'sound': return `<select data-f="id" aria-label="Sound">${opts((sounds || []).map((x) => [x.id, `${x.name} (${x.category})`]), s.id)}</select>`;
+      case 'mood': return `<select data-f="id" aria-label="Mood">${moodList.length ? opts(moodList.map((m) => [m.id, m.name]), s.id) : '<option value="">No moods</option>'}</select>`;
+      case 'moodvol': return `<select data-f="level" aria-label="Volume">${opts([['', "Mood's volume"], ...Array.from({ length: 11 }, (_, i) => [i, `Volume ${i}`])], s.level ?? '')}</select>`;
+      case 'moodsleep': return `<select data-f="minutes" aria-label="Sleep timer">${opts([['', "Mood's sleep timer"], [0, 'No sleep timer'], [15, 'Sleep 15 min'], [30, 'Sleep 30 min'], [45, 'Sleep 45 min'], [60, 'Sleep 1 hour'], [90, 'Sleep 1.5 hours'], [120, 'Sleep 2 hours']], s.minutes ?? '')}</select>`;
       case 'action': return `<select data-f="action" aria-label="What">${opts(Object.entries(ALEXA_DO), s.action)}</select>`;
       case 'seconds': return `<label><input type="number" data-f="seconds" min="1" max="600" value="${esc(s.seconds ?? 5)}" class="num" /> seconds</label>`;
       case 'tvaction': return `<select data-f="action" class="tvact" aria-label="TV action">${opts([['on', 'Turn on'], ['off', 'Turn off'], ['volume', 'Set volume'], ['mute', 'Mute'], ['unmute', 'Unmute'], ['app', 'Open app']], s.action || 'on')}</select>
@@ -337,7 +342,7 @@
   }
   const stepRow = (s) => `<div class="step" data-type="${s.type}"><b>${esc(STEPS[s.type][0])}</b>
     <span class="fields">${STEPS[s.type][1].map((f) => field(f, s)).join('')}</span>
-    <span class="sbtn"><button type="button" data-mv="-1" aria-label="Move up">↑</button><button type="button" data-mv="1" aria-label="Move down">↓</button><button type="button" data-rm aria-label="Remove step">✕</button></span></div>`;
+    <span class="stepbtns"><button type="button" data-mv="-1" aria-label="Move up">${UI.icon('arrow-up', 'sm')}</button><button type="button" data-mv="1" aria-label="Move down">${UI.icon('arrow-down', 'sm')}</button><button type="button" data-rm aria-label="Remove step">${UI.icon('close', 'sm')}</button></span></div>`;
   function readStep(row) {
     const s = { type: row.dataset.type };
     row.querySelectorAll('[data-f]').forEach((f) => {
@@ -352,6 +357,8 @@
     switch (s.type) {
       case 'volume': return `${dev(s.device)} volume ${s.level}`;
       case 'music': return `Play “${s.query}”${s.provider === 'TUNEIN' ? ' (radio)' : ''} on ${dev(s.device)}`;
+      case 'mood': return `Mood: ${moodList.find((m) => m.id === s.id)?.name || s.id} on ${dev(s.device)}${s.level != null ? `, volume ${s.level}` : ''}${s.minutes ? `, sleep ${s.minutes} min` : ''}`;
+      case 'moodstop': return 'Stop the mood';
       case 'pause': return `Pause ${dev(s.device)}`;
       case 'resume': return `Resume ${dev(s.device)}`;
       case 'sleep': return `Sleep timer ${s.minutes} min`;
@@ -367,12 +374,19 @@
       default: return s.type;
     }
   };
-  const scheduleText = (sc) => (sc.schedule?.enabled
-    ? `${sc.schedule.days?.length && sc.schedule.days.length < 7 ? sc.schedule.days.map((d) => DAY_LONG[d]).join(', ') : 'Every day'} at ${fmtClock(sc.schedule.time)}` : '');
+  const scheduleText = (sc) => {
+    const s = sc.schedule;
+    if (!s?.time) return '';
+    const days = [...(s.days || [])].sort().join();
+    const which = !days || days === '0,1,2,3,4,5,6' ? 'Every day' : days === '1,2,3,4,5' ? 'Weekdays' : days === '0,6' ? 'Weekends' : s.days.map((d) => DAY_LONG[d]).join(', ');
+    const when = `${which} at ${fmtClock(s.time)}`;
+    return s.enabled ? when : `Schedule off (${when})`;
+  };
   async function loadScenes() {
     try {
       [scenes] = await Promise.all([api('/scenes'), routines ? null : api('/routines').then((r) => { routines = r; }).catch(() => { routines = []; }),
-        sounds ? null : api('/sounds').then((r) => { sounds = r; }).catch(() => { sounds = []; })]);
+        sounds ? null : api('/sounds').then((r) => { sounds = r; }).catch(() => { sounds = []; }),
+        api('/moods').then((r) => { moodList = r.moods || []; }).catch(() => { moodList = []; })]);
       await whenDevices();
       renderScenes();
     } catch (e) { $('scenesTab').innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
@@ -381,18 +395,19 @@
     if (editing) return; // don't wipe an open editor
     $('scenesTab').innerHTML = `
       <div class="card xcard"><div class="top"><span class="name">Scenes</span>
-        <span class="sbtns">${scenes.length ? '' : '<button id="scExamples">Add examples</button>'}<button class="go" id="scNew">New scene</button></span></div>
+        <span class="sbtns">${scenes.length ? '' : '<button id="scExamples">Add examples</button>'}${moodList.length && !scenes.some((sc) => sc.steps.some((st) => st.type === 'mood')) ? `<button id="scMoodExamples">${UI.icon('moods', 'sm')}Add mood examples</button>` : ''}<button class="go" id="scNew">New scene</button></span></div>
         <p class="kind">A scene does several things in one tap, e.g. “Movie time”: TV on, Echos down to 3, open YouTube. Scenes can also run on a schedule while Echo Volume is running.</p>
         <div class="status" id="scStatus"></div>
       </div>
       ${scenes.map((sc) => `<div class="card xcard scene" data-id="${esc(sc.id)}">
         <div class="top"><span class="name">${esc(sc.name)}</span><span class="kind">${esc(scheduleText(sc))}</span></div>
         <p class="steps">${sc.steps.map((s) => esc(stepText(s))).join(' <span class="arrow">→</span> ')}</p>
-        <div class="sbtns"><button class="go" data-sc="run">▶ Run</button><button data-sc="edit">Edit</button><button data-sc="delete">Delete</button>
+        <div class="sbtns"><button class="go" data-sc="run">${UI.icon('play', 'sm')}Run</button><button data-sc="edit">Edit</button><button data-sc="delete">Delete</button>
           <span class="kind progress" data-progress="${esc(sc.id)}"></span></div>
       </div>`).join('')}`;
     $('scNew').onclick = () => editScene({ name: '', steps: [{ type: 'volume', device: speakerList()[0]?.serial, level: 4 }], schedule: null });
     if ($('scExamples')) $('scExamples').onclick = addExamples;
+    if ($('scMoodExamples')) $('scMoodExamples').onclick = addMoodExamples;
   }
   function editScene(sc) {
     editing = sc;
@@ -458,12 +473,33 @@
       scStatus('Added two examples: edit them to suit you');
     } catch (e) { scStatus(e.message, true); }
   }
+  // Scenes built around moods. The morning one comes with its schedule switched off: turning it on is the user's call.
+  async function addMoodExamples() {
+    const music = musicTarget() || speakerList()[0]?.serial;
+    const isShow = (serial) => speakerList().some((d) => d.serial === serial && d.family === 'KNIGHT');
+    const show = isShow(music) ? music : speakerList().find((d) => d.family === 'KNIGHT')?.serial; // the screen in the same room first
+    const has = (id) => moodList.some((m) => m.id === id);
+    const examples = [
+      has('morning') && { name: 'Morning energizer', steps: [{ type: 'mood', device: music, id: 'morning' }],
+        schedule: { enabled: false, time: '07:00', days: [1, 2, 3, 4, 5] } },
+      has('deepwork') && { name: 'Focus hour', steps: [{ type: 'dnd', device: music, on: true }, { type: 'mood', device: music, id: 'deepwork', minutes: 60 }] },
+      has('sleep') && { name: 'Wind down', steps: [{ type: 'mood', device: music, id: 'sleep' }, { type: 'dnd', device: 'all', on: true },
+        ...(show ? [{ type: 'screen', device: show, on: false }] : [])] },
+    ].filter(Boolean);
+    if (!examples.length) return scStatus('The example moods were deleted: add a mood step yourself', true);
+    try {
+      for (const scene of examples) await api('/scenes', { scene });
+      scenes = await api('/scenes');
+      renderScenes();
+      scStatus(`Added ${examples.map((x) => `“${x.name}”`).join(', ')}. The morning one's schedule is off: turn it on in Edit.`);
+    } catch (e) { scStatus(e.message, true); }
+  }
   $('scenesTab').addEventListener('click', async (e) => {
     const b = e.target.closest('[data-sc]'); if (!b) return;
     const sc = scenes.find((x) => x.id === b.closest('.scene').dataset.id); if (!sc) return;
     if (b.dataset.sc === 'edit') return editScene(JSON.parse(JSON.stringify(sc)));
     if (b.dataset.sc === 'delete') {
-      if (!confirm(`Delete the scene “${sc.name}”?`)) return;
+      if (!(await UI.confirm(`Delete the scene “${sc.name}”?`, { ok: 'Delete', danger: true }))) return;
       await api(`/scenes/${enc(sc.id)}/delete`, {}).catch((err) => scStatus(err.message, true));
       scenes = scenes.filter((x) => x.id !== sc.id);
       return renderScenes();
@@ -472,7 +508,7 @@
   });
   function sceneProgress(d) {
     const p = document.querySelector(`[data-progress="${CSS.escape(d.id)}"]`);
-    const text = d.status === 'running' ? `Running ${d.step}/${d.total}…` : d.status === 'done' ? 'Done ✓' : `Finished with problems: ${d.errors.join('; ')}`;
+    const text = d.status === 'running' ? `Running ${d.step}/${d.total}…` : d.status === 'done' ? 'Done' : `Finished with problems: ${d.errors.join('; ')}`;
     if (p) { p.textContent = text; p.classList.toggle('err', d.status === 'error'); }
     if (d.status === 'done' || d.status === 'error') {
       if (tab !== 'scenes') toast(`Scene “${d.name}”`, d.status === 'done' ? 'Done' : d.errors.join('; '), d.status === 'error');
@@ -592,7 +628,7 @@
         <div class="sbtns"><span class="kind">Do Not Disturb</span><button data-dndall="true">On for all</button><button data-dndall="false">Off for all</button></div></div>
       <div class="grid">${echos.map((d) => `<div class="card xcard echoset" data-serial="${esc(d.serial)}">
         <div class="top"><span class="name">${esc(d.name)}</span><span class="kind">${esc(KIND[d.family] || d.family)}</span></div>
-        <label class="toggle setrow"><span>🌙 Do Not Disturb</span><span class="switch"><input type="checkbox" data-dnd aria-label="Do Not Disturb" /><span></span></span></label>
+        <label class="toggle setrow"><span>${UI.icon('moon', 'sm')} Do Not Disturb</span><span class="switch"><input type="checkbox" data-dnd aria-label="Do Not Disturb" /><span></span></span></label>
         <div class="eq">${['bass', 'mid', 'treble'].map((k) => `<label><span>${k === 'mid' ? 'Mid' : k[0].toUpperCase() + k.slice(1)}</span>
           <input type="range" min="-6" max="6" step="1" value="0" data-eq="${k}" aria-label="${k}" /><b data-eqv="${k}">0</b></label>`).join('')}
           <button data-eqreset>Reset equalizer</button></div>
@@ -603,6 +639,7 @@
       <div class="card xcard"><div class="top"><span class="name">Notifications</span></div>
         <label class="toggle setrow"><span>When a timer or alarm goes off</span><span class="switch"><input type="checkbox" data-notify="alerts" /><span></span></span></label>
         <label class="toggle setrow"><span>When the song changes (Echo music is playing on)</span><span class="switch"><input type="checkbox" data-notify="songs" /><span></span></span></label>
+        <label class="toggle setrow"><span>When a mood starts (a mood that stops on a problem always says so)</span><span class="switch"><input type="checkbox" data-notify="moods" /><span></span></span></label>
         <p class="kind">${isApp ? 'Shown as Windows notifications.' : 'Shown in this page, and as browser notifications while it is in the background.'}</p>
         ${!isApp && 'Notification' in window && Notification.permission !== 'granted' ? '<button id="nfAllow">Allow browser notifications</button>' : ''}</div>
       <div class="card xcard" id="phoneCard"><div class="top"><span class="name">Phone access</span></div><div id="phoneBody"><span class="kind">Loading…</span></div></div>`;
@@ -679,7 +716,7 @@
       if (b.dataset.bton) { b.disabled = true; await api('/bluetooth/connect', { device: c.dataset.serial, address: b.dataset.bton }); seStatus('Connecting…'); setTimeout(loadBluetooth, 4000); }
       if (b.hasAttribute('data-btoff')) { b.disabled = true; await api('/bluetooth/disconnect', { device: c.dataset.serial }); seStatus('Disconnected'); setTimeout(loadBluetooth, 3000); }
       if (b.id === 'phoneNewKey') {
-        if (!confirm('Make a new key? Phones using the old link stop working until they open the new one.')) return;
+        if (!(await UI.confirm('Make a new key? Phones using the old link stop working until they open the new one.', { ok: 'Make a new key' }))) return;
         renderPhone(await api('/lan', { enabled: true, newKey: true }));
       }
     } catch (err) { seStatus(err.message, true); b.disabled = false; }
@@ -729,7 +766,7 @@
       <p class="kind">Said with the year: “Asha is celebrating 34th birthday today”; without it: “It's Asha's birthday today”.
         Only while Echo Volume is running: if the PC is off at that time, it's announced when Echo Volume starts, until 10 pm.</p>
       <form class="xform" id="ceForm">
-        <span class="seg" id="ceType">${[['birthday', '🎂 Birthday'], ['anniversary', '💐 Anniversary']].map(([v, t]) => `<button type="button" data-t="${v}" class="${e.type === v ? 'cur' : ''}">${t}</button>`).join('')}</span>
+        <span class="seg" id="ceType">${[['birthday', `${UI.icon('cake', 'sm')}Birthday`], ['anniversary', `${UI.icon('flower', 'sm')}Anniversary`]].map(([v, t]) => `<button type="button" data-t="${v}" class="${e.type === v ? 'cur' : ''}">${t}</button>`).join('')}</span>
         <input id="ceName" maxlength="60" placeholder="${e.type === 'anniversary' ? 'Who, e.g. Asha and Rohan' : 'Name, e.g. Asha'}" value="${esc(e.name)}" aria-label="Name" />
         <select id="ceDay" aria-label="Day">${opts([['', 'Day'], ...Array.from({ length: 31 }, (_, i) => [i + 1, i + 1])], e.day)}</select>
         <select id="ceMonth" aria-label="Month">${opts([['', 'Month'], ...MONTHS.map((m, i) => [i + 1, m])], e.month)}</select>
@@ -738,9 +775,9 @@
       </form>
       <div class="status" id="ceStatus"></div>
       <div class="alist celist">${celeb.items.length ? celeb.items.map((c) => `<div class="arow" data-id="${esc(c.id)}">
-        <div class="amain">${c.type === 'anniversary' ? '💐' : '🎂'} <b>${esc(c.name)}</b> · ${esc(celebDate(c))}</div>
+        <div class="amain">${UI.icon(c.type === 'anniversary' ? 'flower' : 'cake', 'sm')} <b>${esc(c.name)}</b> · ${esc(celebDate(c))}</div>
         <div class="asub">${esc(celebWhen(c))} · “${esc(c.says)}”</div>
-        <div class="aact"><button data-ce="test" title="Say it now on the chosen Echo">▶ Preview</button><button data-ce="edit">Edit</button><button data-ce="delete" title="Delete" aria-label="Delete">✕</button></div>
+        <div class="aact"><button data-ce="test" title="Say it now on the chosen Echo">${UI.icon('play', 'sm')}Preview</button><button data-ce="edit">Edit</button><button data-ce="delete" title="Delete" aria-label="Delete">${UI.icon('close', 'sm')}</button></div>
       </div>`).join('') : '<div class="empty small">None yet. Add a birthday or anniversary above.</div>'}</div>`;
     let type = e.type;
     $('ceType').onclick = (ev) => {
@@ -774,7 +811,7 @@
       if (b.dataset.ce === 'edit') { celebEdit = { ...c }; renderCelebrations(); return $('ceName').focus(); }
       try {
         if (b.dataset.ce === 'delete') {
-          if (!confirm(`Delete ${c.name}'s ${c.type}?`)) return;
+          if (!(await UI.confirm(`Delete ${c.name}'s ${c.type}?`, { ok: 'Delete', danger: true }))) return;
           celeb = await api(`/celebrations/${enc(c.id)}/delete`, {});
           if (celebEdit?.id === c.id) celebEdit = null;
           renderCelebrations();

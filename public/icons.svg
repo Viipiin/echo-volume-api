@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+<!-- Echo Volume icons: 24px grid, 1.8 stroke, round caps (stroke and fill come from the page: svg.i in ui.css).
+     The filled glyphs (play, pause, star-fill, stop, dot) set fill themselves. Use: <svg class="i"><use href="/icons.svg#play"/></svg> -->
+<defs><linearGradient id="lg-pill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2CC3F0"/><stop offset="1" stop-color="#0E8FB8"/></linearGradient></defs>
+<!-- Logo: three sound pills (short, tall, short), solid cyan. logo-tile = the same on a navy square (app icon). -->
+<symbol id="logo" viewBox="0 0 100 100">
+  <g fill="url(#lg-pill)">
+    <rect x="20" y="34" width="14" height="32" rx="7"/>
+    <rect x="43" y="14" width="14" height="72" rx="7"/>
+    <rect x="66" y="34" width="14" height="32" rx="7"/>
+  </g>
+</symbol>
+<symbol id="logo-tile" viewBox="0 0 100 100">
+  <defs><linearGradient id="lg-tile" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#16223D"/><stop offset="1" stop-color="#0B0F1A"/></linearGradient></defs>
+  <rect x="3" y="3" width="94" height="94" rx="22" fill="url(#lg-tile)" stroke="#2CC3F0" stroke-opacity="0.45" stroke-width="2"/>
+  <g fill="url(#lg-pill)" stroke="none">
+    <rect x="25" y="38" width="12" height="24" rx="6"/>
+    <rect x="44" y="21" width="12" height="58" rx="6"/>
+    <rect x="63" y="38" width="12" height="24" rx="6"/>
+  </g>
+</symbol>
+<symbol id="home" viewBox="0 0 24 24"><path d="M3.5 10.5 12 3.5l8.5 7V20a1 1 0 0 1-1 1H15v-6H9v6H4.5a1 1 0 0 1-1-1z"/></symbol>
+<symbol id="moods" viewBox="0 0 24 24"><path d="M12 3.5l1.6 4.3 4.4 1.7-4.4 1.7L12 15.5l-1.6-4.3L6 9.5l4.4-1.7z"/><path d="M18.5 14.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8zM5.5 15.5l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6z"/></symbol>
+<symbol id="alarm" viewBox="0 0 24 24"><circle cx="12" cy="13" r="7.5"/><path d="M12 9.5V13l2.5 2M5 3.5 2.5 6M19 3.5 21.5 6"/></symbol>
+<symbol id="list" viewBox="0 0 24 24"><path d="M9 6.5h11M9 12h11M9 17.5h11M4.5 6.5h.01M4.5 12h.01M4.5 17.5h.01"/></symbol>
+<symbol id="scenes" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></symbol>
+<symbol id="alexa" viewBox="0 0 24 24"><circle cx="12" cy="11.5" r="8"/><path d="M7 18 5.5 21.5l4-2"/></symbol>
+<symbol id="bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 21.5h4M12 2.5a6.5 6.5 0 0 0-3.8 11.8c.6.5 1 1.2 1 2V17h5.6v-.7c0-.8.4-1.5 1-2A6.5 6.5 0 0 0 12 2.5z"/></symbol>
+<symbol id="settings" viewBox="0 0 24 24"><path d="M4 6h9M19 6h1M4 12h3M13 12h7M4 18h11M21 18h-1"/><circle cx="16" cy="6" r="2.5"/><circle cx="10" cy="12" r="2.5"/><circle cx="17.5" cy="18" r="2.5"/></symbol>
+<symbol id="more" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="18.5" cy="12" r="1.2"/></symbol>
+<symbol id="menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+<symbol id="play" viewBox="0 0 24 24"><path d="M7.5 4.8v14.4a1 1 0 0 0 1.5.9l11.3-7.2a1 1 0 0 0 0-1.7L9 4a1 1 0 0 0-1.5.8z" fill="currentColor" stroke="none"/></symbol>
+<symbol id="pause" viewBox="0 0 24 24"><rect x="6" y="4.5" width="4" height="15" rx="1.2" fill="currentColor" stroke="none"/><rect x="14" y="4.5" width="4" height="15" rx="1.2" fill="currentColor" stroke="none"/></symbol>
+<symbol id="stop" viewBox="0 0 24 24"><rect x="5.5" y="5.5" width="13" height="13" rx="2.5" fill="currentColor" stroke="none"/></symbol>
+<symbol id="next" viewBox="0 0 24 24"><path d="M5.5 5.6v12.8a.8.8 0 0 0 1.2.7l9.6-6.4a.8.8 0 0 0 0-1.4L6.7 4.9a.8.8 0 0 0-1.2.7z" fill="currentColor" stroke="none"/><path d="M18.5 5v14"/></symbol>
+<symbol id="prev" viewBox="0 0 24 24"><path d="M18.5 5.6v12.8a.8.8 0 0 1-1.2.7l-9.6-6.4a.8.8 0 0 1 0-1.4l9.6-6.4a.8.8 0 0 1 1.2.7z" fill="currentColor" stroke="none"/><path d="M5.5 5v14"/></symbol>
+<symbol id="back" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4.5h4.5"/></symbol>
+<symbol id="forward" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7M20 4v4.5h-4.5"/></symbol>
+<symbol id="shuffle" viewBox="0 0 24 24"><path d="M3.5 7h3.2c1.6 0 3 .8 3.9 2.1l2.8 4.3c.9 1.3 2.3 2.1 3.9 2.1h3.2M3.5 17h3.2c1.6 0 3-.8 3.9-2.1M14.3 9.1c.9-1.3 2.3-2.1 3.9-2.1h2.3M18 4.5 20.5 7 18 9.5M18 13l2.5 2.5L18 18"/></symbol>
+<symbol id="repeat" viewBox="0 0 24 24"><path d="M17 3.5 20 6.5l-3 3M20 6.5H8a4 4 0 0 0-4 4V12M7 20.5 4 17.5l3-3M4 17.5h12a4 4 0 0 0 4-4V12"/></symbol>
+<symbol id="star" viewBox="0 0 24 24"><path d="m12 3.6 2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/></symbol>
+<symbol id="star-fill" viewBox="0 0 24 24"><path d="m12 3.6 2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z" fill="currentColor"/></symbol>
+<symbol id="heart" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.3a4.3 4.3 0 0 1 7.5 2.5C19.5 15.4 12 20 12 20z"/></symbol>
+<symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+<symbol id="close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+<symbol id="check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+<symbol id="chevron-left" viewBox="0 0 24 24"><path d="m15 5.5-6.5 6.5 6.5 6.5"/></symbol>
+<symbol id="chevron-right" viewBox="0 0 24 24"><path d="m9 5.5 6.5 6.5L9 18.5"/></symbol>
+<symbol id="chevron-down" viewBox="0 0 24 24"><path d="m5.5 9 6.5 6.5L18.5 9"/></symbol>
+<symbol id="chevron-up" viewBox="0 0 24 24"><path d="m5.5 15 6.5-6.5 6.5 6.5"/></symbol>
+<symbol id="arrow-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+<symbol id="arrow-down" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></symbol>
+<symbol id="volume" viewBox="0 0 24 24"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4.2 4.2 0 0 1 0 6M18.3 6.2a8.2 8.2 0 0 1 0 11.6"/></symbol>
+<symbol id="volume-mute" viewBox="0 0 24 24"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="m16 9.5 5 5M21 9.5l-5 5"/></symbol>
+<symbol id="tv" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="12.5" rx="2"/><path d="M8 21h8"/></symbol>
+<symbol id="power" viewBox="0 0 24 24"><path d="M12 3v8.5M7.1 6.2a7.5 7.5 0 1 0 9.8 0"/></symbol>
+<symbol id="music" viewBox="0 0 24 24"><path d="M9 18V5.5l11-2V16"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></symbol>
+<symbol id="mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></symbol>
+<symbol id="radio" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M7 8 17 3.5"/><circle cx="15.5" cy="14" r="2.5"/><path d="M6.5 12.5h3M6.5 15.5h3"/></symbol>
+<symbol id="search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></symbol>
+<symbol id="refresh" viewBox="0 0 24 24"><path d="M20 11.5a8 8 0 0 0-14.3-4.6M4 12.5a8 8 0 0 0 14.3 4.6M5.5 3v4h4M18.5 21v-4h-4"/></symbol>
+<symbol id="moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></symbol>
+<symbol id="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></symbol>
+<symbol id="monitor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12.5" rx="2"/><path d="M9 20.5h6M12 16.5v4"/></symbol>
+<symbol id="timer" viewBox="0 0 24 24"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.5v4l2.5 1.5M9.5 2.5h5"/></symbol>
+<symbol id="sleep" viewBox="0 0 24 24"><path d="M18 14.5A7 7 0 0 1 9 5.5a7 7 0 1 0 9 9z"/><path d="M15 3.5h4l-4 4h4"/></symbol>
+<symbol id="trash" viewBox="0 0 24 24"><path d="M4.5 6.5h15M9.5 6.5V4.5h5v2M6.5 6.5l1 13a1.5 1.5 0 0 0 1.5 1.5h6a1.5 1.5 0 0 0 1.5-1.5l1-13"/></symbol>
+<symbol id="edit" viewBox="0 0 24 24"><path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-4-4L4 16z"/></symbol>
+<symbol id="headphones" viewBox="0 0 24 24"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3.5" y="14" width="4" height="6.5" rx="1.5"/><rect x="16.5" y="14" width="4" height="6.5" rx="1.5"/></symbol>
+<symbol id="speaker" viewBox="0 0 24 24"><rect x="5.5" y="2.5" width="13" height="19" rx="3"/><circle cx="12" cy="14.5" r="3.5"/><path d="M12 6.5h.01"/></symbol>
+<symbol id="group" viewBox="0 0 24 24"><rect x="2.5" y="5" width="8.5" height="14" rx="2.5"/><rect x="13" y="5" width="8.5" height="14" rx="2.5"/><circle cx="6.75" cy="13.5" r="2"/><circle cx="17.25" cy="13.5" r="2"/></symbol>
+<symbol id="move" viewBox="0 0 24 24"><path d="M3.5 12h13M12.5 7l5 5-5 5M20.5 5v14"/></symbol>
+<symbol id="wave" viewBox="0 0 24 24"><path d="M2.5 12h2l2-5 3 10 3-14 3 14 3-10 2 5h2"/></symbol>
+<symbol id="leaf" viewBox="0 0 24 24"><path d="M5 19c0-8 5-13.5 15-14.5-1 10-6.5 15-14.5 15M5 19l7-7"/></symbol>
+<symbol id="bolt" viewBox="0 0 24 24"><path d="M13 2.5 4.5 13.5H12l-1 8 8.5-11H12z"/></symbol>
+<symbol id="brain" viewBox="0 0 24 24"><path d="M9 4.5a3 3 0 0 0-3 3 3 3 0 0 0-2 5.2A3 3 0 0 0 6 18a3 3 0 0 0 6 .5V6a1.5 1.5 0 0 0-3-1.5zM15 4.5a3 3 0 0 1 3 3 3 3 0 0 1 2 5.2A3 3 0 0 1 18 18a3 3 0 0 1-6 .5"/></symbol>
+<symbol id="info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.5h.01"/></symbol>
+<symbol id="phone" viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M11 18.5h2"/></symbol>
+<symbol id="bluetooth" viewBox="0 0 24 24"><path d="m7 7.5 10 9-5 4.5v-18l5 4.5-10 9"/></symbol>
+<symbol id="bell" viewBox="0 0 24 24"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15zM10 21h4"/></symbol>
+<symbol id="cake" viewBox="0 0 24 24"><path d="M4 21h16M5 21v-7.5a1.5 1.5 0 0 1 1.5-1.5h11a1.5 1.5 0 0 1 1.5 1.5V21M5 16c2 1.5 4.5-1.5 7 0s5 1.5 7 0M12 12V8.5M12 5.5c-.8-1-.8-2 0-3 .8 1 .8 2 0 3z"/></symbol>
+<symbol id="link" viewBox="0 0 24 24"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/></symbol>
+<symbol id="palette" viewBox="0 0 24 24"><path d="M12 3.5a8.5 8.5 0 0 0 0 17c1.2 0 1.8-.8 1.8-1.6 0-1-.8-1.4-.8-2.4 0-1 .8-1.7 1.8-1.7H17a3.5 3.5 0 0 0 3.5-3.5C20.5 7 16.7 3.5 12 3.5z"/><circle cx="7.5" cy="11.5" r="1"/><circle cx="10.5" cy="7.5" r="1"/><circle cx="15" cy="7.5" r="1"/></symbol>
+<symbol id="dot" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="currentColor" stroke="none"/></symbol>
+<symbol id="grip" viewBox="0 0 24 24"><path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01"/></symbol>
+<!-- Mood and celebration icons (moods.js MOOD_ICONS lists the ones a mood may use) -->
+<symbol id="book" viewBox="0 0 24 24"><path d="M5 19.5v-15A1.5 1.5 0 0 1 6.5 3H19v15H6.5A1.5 1.5 0 0 0 5 19.5a1.5 1.5 0 0 0 1.5 1.5H19M9 7h6"/></symbol>
+<symbol id="laptop" viewBox="0 0 24 24"><rect x="4.5" y="4.5" width="15" height="10.5" rx="1.5"/><path d="M2.5 18.5h19"/></symbol>
+<symbol id="book-open" viewBox="0 0 24 24"><path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5zM12 6.5v13"/></symbol>
+<symbol id="coffee" viewBox="0 0 24 24"><path d="M4.5 9.5h11V14a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5zM15.5 10.5H17a2.5 2.5 0 0 1 0 5h-1.5M8 3.5c-.6.8-.6 1.7 0 2.5M12 3.5c-.6.8-.6 1.7 0 2.5M4 21.5h12"/></symbol>
+<symbol id="cocktail" viewBox="0 0 24 24"><path d="M4.5 4.5h15L12 12.5zM12 12.5v7.5M8 20h8M7.3 7.5h9.4"/></symbol>
+<symbol id="cloud-rain" viewBox="0 0 24 24"><path d="M7.5 15H17a3.5 3.5 0 0 0 .4-7A5.5 5.5 0 0 0 6.8 9a3 3 0 0 0 .7 6zM8.5 18l-1 2.5M12.5 18l-1 2.5M16.5 18l-1 2.5"/></symbol>
+<symbol id="pot" viewBox="0 0 24 24"><path d="M4 10.5h16M5.5 10.5V17A2.5 2.5 0 0 0 8 19.5h8a2.5 2.5 0 0 0 2.5-2.5v-6.5M2.5 12.5h3M18.5 12.5h3M9 3.5c-.6.8-.6 1.7 0 2.5M12 3.5c-.6.8-.6 1.7 0 2.5M15 3.5c-.6.8-.6 1.7 0 2.5"/></symbol>
+<symbol id="lotus" viewBox="0 0 24 24"><path d="M12 19.5c-2.3-1.8-3.5-4.2-3.5-7S9.7 7.3 12 5.5c2.3 1.8 3.5 4.2 3.5 7s-1.2 5.2-3.5 7zM12 19.5c-4 0-7.3-1.8-8.5-5.5 1.8-.6 3.6-.3 5.2.6M12 19.5c4 0 7.3-1.8 8.5-5.5-1.8-.6-3.6-.3-5.2.6"/></symbol>
+<symbol id="diya" viewBox="0 0 24 24"><path d="M3.5 13.5h17a8.5 5.5 0 0 1-17 0zM12 3.5c1.5 1.8 2.2 3.2 2.2 4.4a2.2 2.2 0 0 1-4.4 0c0-1.2.7-2.6 2.2-4.4zM9.5 21.5h5"/></symbol>
+<symbol id="sunrise" viewBox="0 0 24 24"><path d="M5.5 16.5a6.5 6.5 0 0 1 13 0M2.5 16.5h19M6 20h12M12 3v4.5M9.5 5.5 12 3l2.5 2.5M4.6 9.6l1.4 1.4M19.4 9.6 18 11"/></symbol>
+<symbol id="activity" viewBox="0 0 24 24"><path d="M2.5 12h4.5l2.5-6.5 5 13 2.5-6.5h4.5"/></symbol>
+<symbol id="car" viewBox="0 0 24 24"><path d="M5.5 16.5H4a1 1 0 0 1-1-1v-3.3a2 2 0 0 1 1.1-1.8L6 9.5l1.8-3.4A2 2 0 0 1 9.6 5h4.8a2 2 0 0 1 1.8 1.1L18 9.5l1.9.9a2 2 0 0 1 1.1 1.8v3.3a1 1 0 0 1-1 1h-1.5M9.5 16.5h5M6 9.5h12"/><circle cx="7.5" cy="16.5" r="2"/><circle cx="16.5" cy="16.5" r="2"/></symbol>
+<symbol id="confetti" viewBox="0 0 24 24"><path d="M3.5 20.5 8 9l7 7z"/><path d="M13 6c.6-1 .4-2-.4-2.6M17 10l2.5-1M15.5 5l1.2-1.6M18 14c1-.4 2 0 2.6.9M20.5 4h.01M10.5 3.5h.01M21 11h.01"/></symbol>
+<symbol id="cassette" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2"/><circle cx="8.5" cy="10.5" r="2"/><circle cx="15.5" cy="10.5" r="2"/><path d="M8.5 12.5h7M6.5 19l1.5-3h8l1.5 3"/></symbol>
+<symbol id="feather" viewBox="0 0 24 24"><path d="M19.5 4.5C13 4.5 8 9.5 8 16c6.5 0 11.5-5 11.5-11.5zM16.5 7.5 4.5 19.5"/></symbol>
+<symbol id="smile" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 14a4 4 0 0 0 7 0M9 9.5h.01M15 9.5h.01"/></symbol>
+<symbol id="candle" viewBox="0 0 24 24"><rect x="9" y="10.5" width="6" height="10" rx="1"/><path d="M12 10.5V8.5M12 2.5c1.2 1.4 1.7 2.4 1.7 3.3a1.7 1.7 0 0 1-3.4 0c0-.9.5-1.9 1.7-3.3zM6 20.5h12"/></symbol>
+<symbol id="guitar" viewBox="0 0 24 24"><path d="M13.5 10.5 19 5M17.5 3.5l3 3"/><path d="M12.3 8.4a3 3 0 0 0-4 .9 2.6 2.6 0 0 1-1.9 1.2 3.6 3.6 0 0 0-2.1 6.1l3.1 3.1a3.6 3.6 0 0 0 6.1-2.1 2.6 2.6 0 0 1 1.2-1.9 3 3 0 0 0 .9-4z"/><path d="M10 14h.01"/></symbol>
+<symbol id="flower" viewBox="0 0 24 24"><path d="M12 13c-3 0-5-2-5-5.5V4l2.5 2L12 3l2.5 3L17 4v3.5c0 3.5-2 5.5-5 5.5zM12 13v8M12 18.5c-1.5-2-3.5-2.6-5.5-2 .5 2 2.5 3 5.5 2zM12 17.5c1.5-2 3.5-2.6 5.5-2-.5 2-2.5 3-5.5 2z"/></symbol>
+<symbol id="win-min" viewBox="0 0 12 12"><path d="M2 6h8"/></symbol>
+<symbol id="win-max" viewBox="0 0 12 12"><rect x="2" y="2" width="8" height="8" rx="1"/></symbol>
+<symbol id="win-restore" viewBox="0 0 12 12"><rect x="2" y="4" width="6" height="6" rx="1"/><path d="M4 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H8"/></symbol>
+<symbol id="win-close" viewBox="0 0 12 12"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7"/></symbol>
+</svg>

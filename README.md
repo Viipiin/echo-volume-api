@@ -38,8 +38,9 @@ scripts/make-icon.js Generates the icons
 |---|---|
 | `npm start` | Run the server + web UI at http://localhost:5005 |
 | `npm run app` | Run the desktop app in development |
-| `npm run dist` | Build the Windows installer into `dist/` |
-| `npm run icons` | Regenerate the icons in `build/` |
+| `npm run build:all` | Build the Windows installer: `dist-installer/Echo-Volume-Setup-<version>.exe` (see [installer/README.md](installer/README.md)) |
+| `npm run dist` | Older NSIS installer into `dist/` (fallback only) |
+| `npm run icons` | Regenerate the logo icons (`build/icon.png`, `build/tray.png`, `public/app-icon.png`) |
 
 ## Setup (Windows / Mac / Linux)
 
@@ -289,8 +290,12 @@ Invoke-RestMethod -Method Post -Uri http://localhost:5005/api/announce -ContentT
 
 Echo Volume also runs as a desktop app with the server built in (no terminal or browser needed).
 
-- **Install:** build the installer with `npm install` then `npm run dist`, and run `dist\Echo Volume Setup <version>.exe`
-  (installers aren't committed to the repo). During development, run `npm run app`.
+- **Install:** build the installer with `npm install` then `npm run build:all`, and run
+  `dist-installer\Echo-Volume-Setup-<version>.exe` (installers aren't committed to the repo). It upgrades an older
+  install in place and keeps your sign-in and settings; silent install, signing and the test checklist are in
+  [installer/README.md](installer/README.md). During development, run `npm run app`.
+- **Start with Windows:** tick it in Setup or in the tray menu; the app then starts quietly in the tray.
+- **Uninstall:** Settings → Apps → Echo Volume. It asks whether to delete your data too (no by default).
 - **Data folder:** `%APPDATA%\Echo Volume` holds `.env`, `cookie.json`, `st-token.json`, `settings.json` (hotkeys) and
   `ui-state.json` (theme, favourites, recently played, scenes, birthdays & anniversaries, notification and phone-access settings). Tray menu →
   *Open data folder*. Edit `.env` there, then quit and reopen the app.

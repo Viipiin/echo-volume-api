@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; base-uri 'none'; form-action 'none'" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Echo Volume Setup</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <svg class="defs" aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="g-tile" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#16223D" /><stop offset="1" stop-color="#0B0F1A" /></linearGradient>
+      <linearGradient id="g-pill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2CC3F0" /><stop offset="1" stop-color="#0E8FB8" /></linearGradient>
+      <linearGradient id="g-ring" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7BE3FF" /><stop offset="1" stop-color="#2CC3F0" /></linearGradient>
+      <!-- The logo (same as #logo-tile in public/icons.svg): three sound pills on a navy square -->
+      <symbol id="logo" viewBox="0 0 100 100">
+        <rect x="3" y="3" width="94" height="94" rx="22" fill="url(#g-tile)" stroke="#2CC3F0" stroke-opacity="0.45" stroke-width="2" />
+        <rect class="wave w1" x="25" y="38" width="12" height="24" rx="6" fill="url(#g-pill)" />
+        <rect class="wave w2" x="44" y="21" width="12" height="58" rx="6" fill="url(#g-pill)" />
+        <rect class="wave w3" x="63" y="38" width="12" height="24" rx="6" fill="url(#g-pill)" />
+      </symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5l-8-3Z" fill="currentColor" /></symbol>
+      <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.6l2 2h8.4A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5v-11Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /></symbol>
+    </defs>
+  </svg>
+
+  <div class="window" id="window">
+    <div class="bg" aria-hidden="true"><span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span></div>
+
+    <header class="titlebar">
+      <svg class="tlogo" aria-hidden="true"><use href="#logo" /></svg>
+      <span class="ttitle" id="ttitle">Echo Volume Setup</span>
+      <span class="tsp"></span>
+      <button class="tbtn" id="btnMin" type="button" aria-label="Minimize"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6h8" /></svg></button>
+      <button class="tbtn close" id="btnClose" type="button" aria-label="Close"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7" /></svg></button>
+    </header>
+
+    <main>
+      <!-- ========== setup ========== -->
+      <section class="screen" id="s-welcome" aria-labelledby="w-title" inert>
+        <div class="hero">
+          <div class="logo-wrap" aria-hidden="true">
+            <span class="ring r1"></span><span class="ring r2"></span><span class="ring r3"></span>
+            <svg class="logo-big"><use href="#logo" /></svg>
+          </div>
+          <div class="hero-text">
+            <h1 id="w-title" tabindex="-1">Echo Volume</h1>
+            <p class="pill" id="w-version">Version</p>
+            <p class="lead">Control your Echo devices and your TV from this PC: volume, music, routines and more.</p>
+            <div class="existing" id="w-existing" hidden>
+              <p class="ex-title" id="w-ex-title"></p>
+              <p class="ex-sub" id="w-ex-sub"></p>
+            </div>
+            <div class="actions" id="w-actions"></div>
+            <p class="fine" id="w-fine"></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" id="s-custom" aria-labelledby="c-title" inert>
+        <h2 id="c-title" tabindex="-1">Customize</h2>
+        <form class="form" id="c-form" novalidate>
+          <fieldset class="scope" id="c-scope">
+            <legend>Install for</legend>
+            <label class="seg"><input type="radio" name="scope" value="user" checked /><span>Just me <small>No admin rights needed</small></span></label>
+            <label class="seg"><input type="radio" name="scope" value="machine" /><span>Everyone on this PC <small><svg class="ico" aria-hidden="true"><use href="#i-shield" /></svg> Needs admin</small></span></label>
+          </fieldset>
+          <label class="field-label" for="c-dir">Install folder</label>
+          <div class="field">
+            <input id="c-dir" type="text" readonly aria-describedby="c-dir-hint" />
+            <button class="btn ghost small" id="c-browse" type="button"><svg class="ico" aria-hidden="true"><use href="#i-folder" /></svg> Browse…</button>
+          </div>
+          <p class="hint" id="c-dir-hint"></p>
+          <div class="checks">
+            <label class="check"><input type="checkbox" id="c-desktop" checked /><span>Desktop shortcut</span></label>
+            <label class="check"><input type="checkbox" id="c-start" checked /><span>Start menu shortcut</span></label>
+            <label class="check"><input type="checkbox" id="c-startup" /><span>Start with Windows <small>(waits in the tray)</small></span></label>
+            <label class="check"><input type="checkbox" id="c-launch" checked /><span>Open Echo Volume when done</span></label>
+          </div>
+          <p class="err" id="c-err" role="alert"></p>
+          <div class="actions end">
+            <button class="btn ghost" id="c-back" type="button">Back</button>
+            <button class="btn primary" id="c-go" type="submit">Install</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="screen" id="s-progress" aria-labelledby="p-title" inert>
+        <div class="prog">
+          <div class="ringbox" aria-hidden="true">
+            <svg viewBox="0 0 140 140" class="pring" id="p-ring">
+              <circle class="track" cx="70" cy="70" r="58" />
+              <circle class="bar" id="p-bar" cx="70" cy="70" r="58" />
+            </svg>
+            <div class="pct"><span id="p-pct">0</span><small>%</small></div>
+          </div>
+          <div class="prog-text">
+            <h2 id="p-title" tabindex="-1">Installing Echo Volume</h2>
+            <p class="status" id="p-status" aria-live="polite">Getting ready…</p>
+            <p class="detail" id="p-detail" aria-hidden="true">&nbsp;</p>
+            <div class="linebar" aria-hidden="true"><span id="p-line"></span></div>
+            <div class="actions">
+              <button class="btn ghost" id="p-cancel" type="button">Cancel</button>
+            </div>
+            <div class="confirm" id="p-confirm" role="alertdialog" aria-labelledby="p-confirm-t" hidden>
+              <p id="p-confirm-t">Cancel the installation? Everything done so far is undone.</p>
+              <button class="btn ghost small" id="p-keep" type="button">Keep installing</button>
+              <button class="btn danger small" id="p-stop" type="button">Cancel install</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" id="s-done" aria-labelledby="d-title" inert>
+        <canvas class="confetti" id="confetti" aria-hidden="true"></canvas>
+        <div class="center">
+          <svg class="check-anim" viewBox="0 0 100 100" aria-hidden="true">
+            <circle class="c-circle" cx="50" cy="50" r="44" />
+            <path class="c-tick" d="M30 52 L44 65 L71 37" />
+          </svg>
+          <h2 id="d-title" tabindex="-1">Echo Volume is ready</h2>
+          <p class="lead" id="d-text">It lives in the tray next to the clock. Press Ctrl+Alt+E to show or hide it from anywhere.</p>
+          <p class="fine" id="d-auto" aria-live="polite"></p>
+          <div class="actions center-row">
+            <button class="btn primary" id="d-launch" type="button">Launch Echo Volume</button>
+            <button class="btn ghost" id="d-close" type="button">Close</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" id="s-error" aria-labelledby="e-title" inert>
+        <div class="center">
+          <div class="err-ico" aria-hidden="true">!</div>
+          <h2 id="e-title" tabindex="-1">Something went wrong</h2>
+          <p class="lead" id="e-text"></p>
+          <p class="fine" id="e-sub">Nothing was left half-installed: every change was undone.</p>
+          <div class="actions center-row">
+            <button class="btn primary" id="e-retry" type="button">Retry</button>
+            <button class="btn ghost" id="e-log" type="button">View log</button>
+            <button class="btn ghost" id="e-close" type="button">Close</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== uninstall ========== -->
+      <section class="screen" id="s-uconfirm" aria-labelledby="u-title" inert>
+        <div class="hero">
+          <div class="logo-wrap still" aria-hidden="true"><svg class="logo-big"><use href="#logo" /></svg></div>
+          <div class="hero-text">
+            <h1 id="u-title" tabindex="-1">Uninstall Echo Volume</h1>
+            <p class="pill" id="u-version"></p>
+            <p class="lead" id="u-where"></p>
+            <label class="check big"><input type="checkbox" id="u-data" /><span>Also delete my data
+              <small id="u-data-hint">Amazon and SmartThings sign-in, playlists, favourites, scenes, birthdays and settings.</small></span></label>
+            <div class="actions">
+              <button class="btn danger" id="u-go" type="button">Uninstall</button>
+              <button class="btn ghost" id="u-cancel" type="button">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" id="s-udone" aria-labelledby="ud-title" inert>
+        <div class="center">
+          <svg class="check-anim" viewBox="0 0 100 100" aria-hidden="true">
+            <circle class="c-circle" cx="50" cy="50" r="44" />
+            <path class="c-tick" d="M30 52 L44 65 L71 37" />
+          </svg>
+          <h2 id="ud-title" tabindex="-1">Echo Volume has been removed</h2>
+          <p class="lead" id="ud-text"></p>
+          <div class="actions center-row"><button class="btn primary" id="ud-close" type="button">Close</button></div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

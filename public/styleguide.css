@@ -1,0 +1,30 @@
+/* Style guide page layout only (the components themselves are in ui.css) */
+.sg-top { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 16px;
+  background: color-mix(in srgb, var(--bg) 80%, transparent); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
+.sg { max-width: 1180px; margin: 0 auto; padding: 24px 16px 96px; display: flex; flex-direction: column; gap: 32px; }
+.sg section > h2 { margin-bottom: 12px; }
+.sg-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.sg-center { align-items: center; gap: 18px; }
+.sg-gap { margin-top: 14px; }
+.sg-col { display: flex; flex-direction: column; gap: 10px; width: 180px; }
+.sg-grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; align-items: start; }
+.sg-grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.sg-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.sg-moods { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
+.sg-swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.sg-swatch { border-radius: var(--r-md); border: 1px solid var(--line); overflow: hidden; background: var(--surface-1); font-size: 12px; }
+.sg-swatch i { display: block; height: 52px; border-bottom: 1px solid var(--line); }
+.sg-swatch span { display: block; padding: 6px 8px; color: var(--muted); }
+.sg-h1 { font: 650 var(--fs-3xl)/1.15 var(--font-display); letter-spacing: -0.01em; }
+.sg-big { font: 650 48px/1 var(--font-display); color: var(--accent); margin: 10px 0; }
+.sg-big small { font-size: 14px; color: var(--muted); margin-left: 6px; font-weight: 500; }
+.sg-icons { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; }
+.sg-icons div { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 4px; border-radius: var(--r-sm); font-size: 11px; color: var(--muted); }
+.sg-icons div:hover { background: var(--surface-2); color: var(--text); }
+.sg-static { position: static !important; display: flex !important; }
+.titlebar.sg-static { padding: 0 4px 10px; height: auto; }
+.tabbar.sg-static { border: 1px solid var(--line); border-radius: var(--r-lg); padding: 6px; background: var(--surface-solid); }
+.tabbar.sg-static button { flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 3px; min-height: 44px; border: 0; background: transparent; color: var(--muted); font: 600 10.5px var(--font); cursor: pointer; }
+.tabbar.sg-static button.cur { color: var(--accent); }
+.sg-w60 { width: 60%; } .sg-w70 { width: 70%; }
+.badges { margin-top: 10px; }

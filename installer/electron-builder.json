@@ -1,0 +1,35 @@
+{
+  "appId": "local.echovolume.setup",
+  "productName": "Echo Volume Setup",
+  "copyright": "Vipin Kumar",
+  "directories": { "output": "dist-installer", "buildResources": "build" },
+  "extraMetadata": { "main": "installer/main.js", "name": "echo-volume-setup", "productName": "Echo Volume Setup", "dependencies": {} },
+  "files": [
+    "package.json",
+    "installer/main.js",
+    "installer/preload.js",
+    "installer/lib/**",
+    "installer/renderer/**",
+    "build/icon.png",
+    "!node_modules/**",
+    "!installer/payload/**",
+    "!installer/scripts/**"
+  ],
+  "extraResources": [{ "from": "installer/payload", "to": "payload", "filter": ["payload.evpack", "payload.json"] }],
+  "asar": true,
+  "npmRebuild": false,
+  "win": {
+    "target": [{ "target": "portable", "arch": ["x64"] }],
+    "icon": "build/icon.png",
+    "artifactName": "Echo-Volume-Setup-${version}.${ext}",
+    "signtoolOptions": {
+      "publisherName": "Vipin Kumar",
+      "signingHashAlgorithms": ["sha256"],
+      "rfc3161TimeStampServer": "http://timestamp.digicert.com"
+    }
+  },
+  "portable": {
+    "requestExecutionLevel": "user",
+    "splashImage": "installer/assets/splash.bmp"
+  }
+}

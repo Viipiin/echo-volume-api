@@ -11,6 +11,7 @@ cookie.json
 st-token.json
 ui-state.json
 settings.json
+catalog-cache.json
 
 # Tooling / OS
 .playwright-cli/
@@ -18,3 +19,7 @@ settings.json
 *.log
 .DS_Store
 Thumbs.db
+
+# Installer payload (built by npm run build:payload)
+installer/payload/
+installer/assets/
