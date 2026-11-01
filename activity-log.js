@@ -54,7 +54,8 @@ function parseCommand(body) {
   try { const b = JSON.parse(body); walk(typeof b.sequenceJson === 'string' ? JSON.parse(b.sequenceJson) : b); } catch {}
   return found;
 }
-const words = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9\u0900-\u0a7f ]+/g, ' ').replace(/\s+/g, ' ').trim();
+// Alexa writes "hz" out as "hertz" in voice history ("play 40 hertz gamma waves"), so both sides say hertz
+const words = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9\u0900-\u0a7f ]+/g, ' ').replace(/(\d)\s*hz\b|\bhz\b/g, '$1 hertz').replace(/\s+/g, ' ').trim();
 
 // Voice history records → entries waiting for Alexa's reply, on the same Echo, the record within -3 s … +40 s of
 // the command. Alexa logs the words it was sent, so a record whose words contain an entry's command belongs to it;

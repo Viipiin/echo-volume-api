@@ -49,7 +49,7 @@ const BUILT_IN = [
   m('deepwork', 'Deep Work', 'laptop', 'focus', 3, 'instrumental',
     { desc: 'Long stretches of concentration and coding', vol: 3, sleep: null, tod: ['morning', 'afternoon', 'night'], days: 'weekday', accent: ['#22d3ee', '#0f766e'], freq: 'beta' }, {
       instrumental: ['deep focus music', 'coding music', 'electronic focus music|3', 'synthwave for coding|4', 'minimal techno focus|4', 'ambient electronic focus|2', 'video game music for focus', 'post rock instrumental|3'],
-      hindi: ['bollywood instrumental', 'hindi lofi beats', 'bollywood lofi chill', 'hindi chill mix', 'a r rahman instrumental', 'hindi indie chill'],
+      hindi: ['bollywood instrumental', 'hindi lofi beats', 'bollywood lofi chill', 'hindi chill mix', 'a r rahman instrumental', 'prateek kuhad'],
       english: ['chill electronic', 'downtempo electronic', 'indie electronic chill', 'focus pop', 'chill house|4', 'electronic chill mix'],
       punjabi: ['punjabi lofi', 'punjabi chill beats', 'punjabi lofi mix', 'slowed punjabi songs', 'punjabi instrumental', 'punjabi chill'],
       sufiGhazal: ['sufi lofi', 'sufi ney flute', 'sultan khan sarangi', 'sarangi instrumental', 'santoor', 'sufi chill'],
@@ -75,7 +75,7 @@ const BUILT_IN = [
   m('chill', 'Chill', 'coffee', 'relax', 2, 'any',
     { desc: 'Easy music for a slow hour', vol: 4, tod: ['afternoon', 'evening'], accent: ['#5eead4', '#0ea5e9'], freq: 'hz432', ratio: 3 }, {
       instrumental: ['chill instrumental', 'lofi chill', 'chill vibes', 'chillout music', 'downtempo chill', 'chill jazz', 'bossa nova', 'chill guitar instrumental'],
-      hindi: ['hindi chill songs', 'bollywood chill', 'hindi chill mix', 'chill bollywood songs', 'bollywood unplugged', 'hindi indie chill'],
+      hindi: ['hindi chill songs', 'bollywood chill', 'hindi chill mix', 'chill bollywood songs', 'bollywood unplugged', 'prateek kuhad'],
       english: ['chill hits', 'chill pop', 'chill rnb', 'chill acoustic', 'chill vibes songs', 'chill indie'],
       punjabi: ['punjabi chill', 'chill punjabi songs', 'punjabi lofi chill', 'punjabi rnb', 'ap dhillon chill', 'punjabi chill mix'],
       sufiGhazal: ['sufi chill', 'coke studio', 'soft qawwali', 'ghazal chill', 'rahat fateh ali khan soft songs', 'sufi lounge'],
@@ -91,7 +91,7 @@ const BUILT_IN = [
   m('rainy', 'Rainy Day', 'cloud-rain', 'relax', 1, 'any',
     { desc: 'Grey skies, chai and soft songs', vol: 3, tod: ['afternoon', 'evening'], accent: ['#64748b', '#38bdf8'], freq: null }, {
       instrumental: ['rainy day jazz', 'rain lofi', 'rainy day piano', 'rain sounds piano', 'monsoon instrumental', 'rainy day acoustic', 'jazz for rainy days', 'rainy night lofi'],
-      hindi: ['hindi rain songs', 'bollywood barish songs', 'monsoon bollywood songs', 'old hindi rain songs', 'romantic barish songs', 'hindi lofi rain'],
+      hindi: ['rimjhim gire sawan', 'bollywood barish songs', 'monsoon bollywood songs', 'kishore kumar', 'romantic barish songs', 'hindi lofi rain'],
       english: ['rainy day songs', 'rainy day acoustic songs', 'sad rainy day songs', 'cozy rainy day', 'rainy day indie', 'rainy day jazz vocals'],
       punjabi: ['punjabi barish songs', 'punjabi rain songs', 'punjabi monsoon songs', 'punjabi sad soft songs', 'punjabi lofi rain', 'punjabi acoustic rain'],
       sufiGhazal: ['barish ghazals', 'monsoon ghazals', 'sawan ghazal', 'rain sufi songs', 'jagjit singh barish', 'sufi rain'],
@@ -107,7 +107,7 @@ const BUILT_IN = [
   m('sunday', 'Sunday Morning', 'sun', 'relax', 2, 'any',
     { desc: 'Slow start, coffee, sunshine', vol: 3, tod: ['early', 'morning'], days: 'weekend', accent: ['#fde68a', '#fb7185'], freq: 'hz528', ratio: 4 }, {
       instrumental: ['sunday morning jazz', 'morning acoustic', 'sunday morning coffee', 'brunch jazz', 'bossa nova morning', 'peaceful morning piano', 'acoustic guitar morning', 'morning lofi'],
-      hindi: ['hindi morning songs', 'soft hindi morning songs', 'old hindi morning songs', 'bollywood sunday songs', 'hindi acoustic morning', 'rd burman songs'],
+      hindi: ['lucky ali', 'mohit chauhan', 'shreya ghoshal', 'bollywood sunday songs', 'hindi acoustic morning', 'rd burman songs'],
       english: ['sunday morning songs', 'lazy sunday', 'acoustic morning', 'sunday brunch songs', 'feel good folk', 'soft morning pop'],
       punjabi: ['punjabi morning songs', 'soft punjabi songs', 'punjabi folk', 'punjabi acoustic', 'satinder sartaaj songs', 'punjabi sunday'],
       sufiGhazal: ['morning sufi', 'sufi morning songs', 'morning ghazals', 'soft qawwali', 'shabad gurbani|1', 'sufi kalam'],
@@ -133,7 +133,7 @@ const BUILT_IN = [
   m('gratitude', 'Gratitude / Spiritual', 'diya', 'mind', 2, 'any',
     { desc: 'Devotional and uplifting', vol: 3, tod: ['early', 'morning', 'evening'], accent: ['#fbbf24', '#f97316'], freq: 'om', ratio: 3 }, {
       instrumental: ['spiritual music', 'devotional instrumental', 'temple music', 'peaceful spiritual music', 'sitar spiritual', 'flute devotional'],
-      hindi: ['bhajans', 'morning bhajans', 'hindi devotional songs', 'krishna bhajans', 'shiv bhajans', 'aarti songs'],
+      hindi: ['bhajans', 'anuradha paudwal', 'hindi devotional songs', 'krishna bhajans', 'shiv bhajans', 'aarti songs'],
       english: ['gratitude songs', 'uplifting songs', 'spiritual songs', 'gospel', 'hymns', 'inspirational songs'],
       punjabi: ['gurbani', 'shabad kirtan', 'waheguru simran', 'gurbani kirtan', 'punjabi devotional', 'dhan guru nanak'],
       sufiGhazal: ['qawwali', 'nusrat fateh ali khan', 'sufi devotional', 'abida parveen', 'sabri brothers qawwali', 'sufi kalam'],
@@ -176,7 +176,7 @@ const BUILT_IN = [
   m('party', 'Party', 'confetti', 'energy', 5, 'any',
     { desc: 'Turn it up', vol: 6, tod: ['evening', 'night'], days: 'weekend', accent: ['#e879f9', '#22d3ee'], freq: null }, {
       instrumental: ['party edm', 'house party', 'dance music', 'club hits', 'tech house', 'afro house'],
-      hindi: ['bollywood party songs', 'hindi party songs', 'bollywood dance hits', 'hindi club songs', 'bollywood wedding songs', 'hindi remix'],
+      hindi: ['bollywood party songs', 'hindi party songs', 'bollywood dance hits', 'badshah', 'sachin-jigar', 'hindi remix'],
       english: ['party hits', 'dance hits', 'pop party', 'throwback party', 'hip hop party', 'top 40 party'],
       punjabi: ['punjabi party songs', 'bhangra party', 'punjabi dance hits', 'punjabi club songs', 'punjabi wedding songs', 'yo yo honey singh'],
       sufiGhazal: ['qawwali party', 'sufi remix', 'coke studio party', 'sufi dance', 'mast qalandar', 'sufi trance'],
@@ -202,7 +202,7 @@ const BUILT_IN = [
   m('reflective', 'Sad / Reflective', 'feather', 'emotion', 1, 'any',
     { desc: 'For heavy days', vol: 3, tod: ['evening', 'night', 'late'], accent: ['#60a5fa', '#312e81'], freq: 'hz432', ratio: 4 }, {
       instrumental: ['sad piano', 'melancholic instrumental', 'sad strings', 'emotional piano', 'reflective ambient', 'sad cello'],
-      hindi: ['hindi sad songs', 'bollywood sad songs', 'arijit singh sad songs', 'hindi heartbreak songs', 'old hindi sad songs', 'sad hindi lofi'],
+      hindi: ['hindi sad songs', 'bollywood sad songs', 'arijit singh sad songs', 'jubin nautiyal', 'old hindi sad songs', 'sad hindi lofi'],
       english: ['sad songs', 'heartbreak songs', 'sad acoustic', 'sad indie', 'reflective songs', 'sad pop'],
       punjabi: ['punjabi sad songs', 'punjabi heartbreak songs', 'b praak sad songs', 'punjabi sad hits', 'sad punjabi lofi', 'punjabi emotional songs'],
       sufiGhazal: ['sad ghazals', 'sad sufi songs', 'jagjit singh sad ghazals', 'nusrat sad songs', 'dard bhari ghazal', 'sad qawwali'],
@@ -218,14 +218,14 @@ const BUILT_IN = [
   m('sufi', 'Sufi & Ghazal evening', 'candle', 'emotion', 2, 'any',
     { desc: 'Qawwali, ghazal and kalam', vol: 3, tod: ['evening', 'night'], accent: ['#f59e0b', '#7c3aed'], freq: null }, {
       instrumental: ['sultan khan sarangi', 'sarangi instrumental', 'sarangi', 'santoor', 'sufi ney flute', 'shehnai'],
-      hindi: ['hindi ghazals', 'hindi sufi songs', 'bollywood sufi songs', 'jagjit singh hindi ghazals', 'pankaj udhas', 'talat aziz ghazals'],
+      hindi: ['ghulam ali', 'hindi sufi songs', 'bollywood sufi songs', 'jagjit singh', 'pankaj udhas', 'talat aziz ghazals'],
       english: ['sufi music', 'world music sufi', 'sufi fusion', 'sufi chill', 'coke studio', 'sufi soul'],
       punjabi: ['punjabi sufi songs', 'wadali brothers', 'punjabi sufi kalam', 'bulleh shah kalam', 'satinder sartaaj', 'punjabi qawwali'],
       sufiGhazal: ['ghazals', 'qawwali', 'nusrat fateh ali khan', 'abida parveen', 'mehdi hassan ghazals', 'jagjit singh ghazals', 'ghulam ali', 'sabri brothers'],
     }),
   m('bollyinstrumental', 'Instrumental Bollywood', 'guitar', 'emotion', 2, 'instrumental',
     { desc: 'Bollywood favourites, without words', vol: 3, tod: ['afternoon', 'evening'], accent: ['#ec4899', '#0ea5e9'], freq: null }, {
-      instrumental: ['bollywood instrumental', 'bollywood flute instrumental', 'bollywood piano covers', 'bollywood violin covers', 'bollywood guitar instrumental', 'bollywood saxophone', 'bollywood lofi instrumental', 'a r rahman instrumental'],
+      instrumental: ['bollywood instrumental', 'bollywood flute instrumental', 'bollywood piano covers', 'bollywood violin covers', 'bollywood guitar instrumental', 'bollywood saxophone', 'a r rahman instrumental'],
       hindi: ['bollywood instrumental', 'hindi songs instrumental', 'old hindi songs instrumental', 'bollywood sitar instrumental', 'bollywood santoor', 'hindi film instrumental'],
       english: ['bollywood orchestral', 'indian cinematic instrumental', 'bollywood strings', 'indian fusion instrumental', 'bollywood piano', 'bollywood jazz instrumental'],
       punjabi: ['punjabi instrumental', 'punjabi flute instrumental', 'punjabi dhol instrumental|4', 'punjabi guitar instrumental', 'punjabi tumbi', 'punjabi folk instrumental'],

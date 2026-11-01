@@ -37,7 +37,7 @@ const amazonGate = require('./amazon-limiter');
 const PACE_MS = Number(process.env.COMMAND_GAP_MS || 1500);
 const events = new (require('events'))(); // 'listening', 'listen-error', 'login-needed', 'ready', 'log'
 // Activity log (activity-log.js): what was asked, what went to Amazon, what happened; shown on the Activity screen
-const { createActivityLog, matchReplies, parseCommand } = require('./activity-log');
+const { createActivityLog, matchReplies, parseCommand, BAD_REPLY } = require('./activity-log');
 const logChanged = new Map(); // entries changed in the last moment: sent to open pages twice a second at most
 let logFlush = null;
 const activity = createActivityLog({
@@ -357,7 +357,11 @@ async function checkReplies() {
     console.log('Activity log: voice history failed:', e.message || e); return null;
   });
   const records = (Array.isArray(r) ? r : []).map((x) => ({ serial: x.deviceSerialNumber, at: Number(x.creationTimestamp) || 0, text: x.description?.summary || '', response: x.alexaResponse || '' }));
-  for (const { entry, record } of matchReplies(waiting, records)) activity.attachReply(entry, record);
+  for (const { entry, record } of matchReplies(waiting, records)) {
+    activity.attachReply(entry, record);
+    // A mood phrase Apple Music doesn't have: the Echo keeps playing the last track, so only this reply tells
+    if (entry.source === 'mood' && BAD_REPLY.test(entry.alexa?.said || '')) moodPlayer?.onNotFound(entry);
+  }
   for (const e of waiting) if (!e.alexa) activity.replyTried(e);
   if (activity.waitingForReply().length) scheduleReplies(20000);
 }
@@ -387,9 +391,14 @@ const cleanAlbum = (s) => clean(s).replace(/\s*[([][^)\]]*(deluxe|edition|soundt
 // without brackets instead ("the album Saiyaara Extended Album Original Motion Picture Soundtrack")
 const various = (artist) => /^various artists$/i.test(mainArtist(artist));
 const fullTitle = (s) => clean(s).replace(/[()[\]]/g, ' ').replace(/\s+/g, ' ').trim();
+// A version tag in brackets ("Sufi (Venky Remix)", "(Live)", "(Acoustic)") makes Alexa drop words and miss the song
+// ("I can't find the song sufi venky"): it's left out of what's said, and the main version plays. Only for the
+// spoken phrase: search results still show (and keep apart) each version.
+const VERSION = /\s*[([][^)\]]*\b(remix|mix|live|acoustic|unplugged|reprise|version|edit|remaster(ed)?|slowed|reverb|sped up|lo-?fi)\b[^)\]]*[)\]]/gi;
+const spokenTitle = (s) => clean(s).replace(VERSION, '').trim() || clean(s);
 const phrase = (type, title, artist) => {
-  if (various(artist)) return type === 'album' ? `the album ${fullTitle(title)}` : clean(title);
-  return type === 'album' ? `the album ${cleanAlbum(title)} by ${mainArtist(artist)}` : `${clean(title)} by ${mainArtist(artist)}`;
+  if (various(artist)) return type === 'album' ? `the album ${fullTitle(title)}` : spokenTitle(title);
+  return type === 'album' ? `the album ${cleanAlbum(title)} by ${mainArtist(artist)}` : `${spokenTitle(title)} by ${mainArtist(artist)}`;
 };
 
 const ENTITY = { song: 'song', album: 'album', artist: 'musicArtist' };
@@ -717,6 +726,11 @@ async function playlistPlayItem(dev, list, index, fadeIn, item, logParent) {
   const prev = plRun;
   const run = plRun = { serial: dev.serialNumber, list: list.id, items: list.items, more: list.more, surprise: list.surprise, ...hooks, index, title: null, at: Date.now(), idle: 0, tracks: 0, logParent };
   if (prev && prev !== run && prev.onEnd && prev.onEnd !== run.onEnd) { try { prev.onEnd(prev, 'replaced'); } catch {} } // another list took over
+  // What the Echo plays before this item is asked for (from the checks, 5 s apart): Alexa answering "I couldn't
+  // find…" leaves that playing, which must not pass for this item having started (mood-player.js, verify)
+  const was = nowCache[dev.serialNumber];
+  item.before = was && Date.now() - was.at < 30000 && was.info?.state === 'PLAYING' ? was.info.infoText?.title || null : null;
+  item.sentAt = null; // set once the play command has gone (Amazon can hold it for a while)
   try { run.onItem?.(run, item); } catch (e) { console.log('Queue item hook failed:', e.message); }
   clearInterval(plTimer); clearTimeout(fadeTimer);
   plTimer = activity.detached(() => setInterval(() => playlistCheck().catch((e) => console.log('Playlist check failed:', e.message)), 5000)); // its reads are counted, not this item's
@@ -726,7 +740,8 @@ async function playlistPlayItem(dev, list, index, fadeIn, item, logParent) {
   if (list.more && index >= list.items.length - 3) {
     list.more().then((add) => list.items.push(...add)).catch((e) => console.log('Adding to the queue failed:', e.message || e));
   }
-  const start = () => (item.type === 'podcast' ? playPodcastShow(dev, item.query) : playMusic(dev, item.query));
+  const start = () => (item.type === 'podcast' ? playPodcastShow(dev, item.query) : playMusic(dev, item.query))
+    .then((via) => { item.sentAt = Date.now(); return via; });
   if (!fadeIn) return start();
   run.fading = true; // keep the checks out until it's back up
   try {
