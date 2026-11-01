@@ -291,7 +291,7 @@
 
   // ---------- Scenes ----------
   const scStatus = statusIn('scStatus');
-  let scenes = [], routines = null, sounds = null, moodList = [], editing = null;
+  let scenes = [], routines = null, sounds = null, moodList = [], moodLangs = [], editing = null;
   const DAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
   const DAY_LONG = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const ALEXA_DO = { weather: 'Weather', traffic: 'Traffic', flashbriefing: 'News (flash briefing)', goodmorning: 'Good morning',
@@ -299,7 +299,7 @@
   const STEPS = {
     volume: ['Echo volume', ['device', 'level']],
     music: ['Play music', ['device', 'query', 'provider']],
-    mood: ['Play a mood', ['device', 'mood', 'moodvol', 'moodsleep']],
+    mood: ['Play a mood', ['device', 'mood', 'moodlang', 'moodvol', 'moodsleep']],
     moodstop: ['Stop the mood', []],
     pause: ['Pause music', ['device']],
     resume: ['Resume music', ['device']],
@@ -330,6 +330,7 @@
       case 'routine': return `<select data-f="id" aria-label="Routine">${opts((routines || []).map((r) => [r.id, r.name]), s.id)}</select>`;
       case 'sound': return `<select data-f="id" aria-label="Sound">${opts((sounds || []).map((x) => [x.id, `${x.name} (${x.category})`]), s.id)}</select>`;
       case 'mood': return `<select data-f="id" aria-label="Mood">${moodList.length ? opts(moodList.map((m) => [m.id, m.name]), s.id) : '<option value="">No moods</option>'}</select>`;
+      case 'moodlang': return `<select data-f="language" aria-label="Language">${opts([['', 'Language from the Moods screen'], ...moodLangs.map((l) => [l.id, l.name])], s.language || '')}</select>`;
       case 'moodvol': return `<select data-f="level" aria-label="Volume">${opts([['', "Mood's volume"], ...Array.from({ length: 11 }, (_, i) => [i, `Volume ${i}`])], s.level ?? '')}</select>`;
       case 'moodsleep': return `<select data-f="minutes" aria-label="Sleep timer">${opts([['', "Mood's sleep timer"], [0, 'No sleep timer'], [15, 'Sleep 15 min'], [30, 'Sleep 30 min'], [45, 'Sleep 45 min'], [60, 'Sleep 1 hour'], [90, 'Sleep 1.5 hours'], [120, 'Sleep 2 hours']], s.minutes ?? '')}</select>`;
       case 'action': return `<select data-f="action" aria-label="What">${opts(Object.entries(ALEXA_DO), s.action)}</select>`;
@@ -357,7 +358,7 @@
     switch (s.type) {
       case 'volume': return `${dev(s.device)} volume ${s.level}`;
       case 'music': return `Play “${s.query}”${s.provider === 'TUNEIN' ? ' (radio)' : ''} on ${dev(s.device)}`;
-      case 'mood': return `Mood: ${moodList.find((m) => m.id === s.id)?.name || s.id} on ${dev(s.device)}${s.level != null ? `, volume ${s.level}` : ''}${s.minutes ? `, sleep ${s.minutes} min` : ''}`;
+      case 'mood': return `Mood: ${moodList.find((m) => m.id === s.id)?.name || s.id} on ${dev(s.device)}${s.language ? `, ${moodLangs.find((l) => l.id === s.language)?.name || s.language}` : ''}${s.level != null ? `, volume ${s.level}` : ''}${s.minutes ? `, sleep ${s.minutes} min` : ''}`;
       case 'moodstop': return 'Stop the mood';
       case 'pause': return `Pause ${dev(s.device)}`;
       case 'resume': return `Resume ${dev(s.device)}`;
@@ -386,7 +387,7 @@
     try {
       [scenes] = await Promise.all([api('/scenes'), routines ? null : api('/routines').then((r) => { routines = r; }).catch(() => { routines = []; }),
         sounds ? null : api('/sounds').then((r) => { sounds = r; }).catch(() => { sounds = []; }),
-        api('/moods').then((r) => { moodList = r.moods || []; }).catch(() => { moodList = []; })]);
+        api('/moods').then((r) => { moodList = r.moods || []; moodLangs = [...(r.mixes || []), ...(r.languages || [])]; }).catch(() => { moodList = []; })]);
       await whenDevices();
       renderScenes();
     } catch (e) { $('scenesTab').innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
@@ -480,7 +481,7 @@
     const show = isShow(music) ? music : speakerList().find((d) => d.family === 'KNIGHT')?.serial; // the screen in the same room first
     const has = (id) => moodList.some((m) => m.id === id);
     const examples = [
-      has('morning') && { name: 'Morning energizer', steps: [{ type: 'mood', device: music, id: 'morning' }],
+      has('morning') && { name: 'Morning energizer', steps: [{ type: 'mood', device: music, id: 'morning', language: 'mix' }],
         schedule: { enabled: false, time: '07:00', days: [1, 2, 3, 4, 5] } },
       has('deepwork') && { name: 'Focus hour', steps: [{ type: 'dnd', device: music, on: true }, { type: 'mood', device: music, id: 'deepwork', minutes: 60 }] },
       has('sleep') && { name: 'Wind down', steps: [{ type: 'mood', device: music, id: 'sleep' }, { type: 'dnd', device: 'all', on: true },

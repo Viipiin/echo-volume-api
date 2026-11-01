@@ -2,6 +2,8 @@
 // Pure code (no I/O): mood-player.js plays them, server.js keeps the state.
 //
 // A mood's phrases are what Alexa searches Apple Music for ("play <phrase> on apple music"), per language.
+// Apple Music on Alexa only finds names in its catalog (artists, songs, albums, playlists): a description such as
+// "bollywood happy songs" gets "I couldn't find any…", so phrases are best kept to artist names.
 // A phrase may end in "|<energy>" (1 calm … 5 energetic) when it differs from the mood's own energy; the
 // intensity chosen when playing favours phrases near it. Phrases are search phrases, so what plays can vary.
 const { preset } = require('./focus-presets');
@@ -14,6 +16,11 @@ const LANGUAGES = [
   { id: 'instrumental', name: 'Instrumental' }, { id: 'hindi', name: 'Hindi' }, { id: 'english', name: 'English' },
   { id: 'punjabi', name: 'Punjabi' }, { id: 'sufiGhazal', name: 'Sufi & Ghazal' },
 ];
+// A mix plays each phrase in one of its languages, picked at random and never the same one twice in a row
+// (mood-player.js), so a morning goes Hindi → Punjabi → English → Hindi…; it has no phrases of its own
+const MIXES = [{ id: 'mix', name: 'Mix: Hindi, English, Punjabi', languages: ['hindi', 'english', 'punjabi'] }];
+const languageOk = (id) => LANGUAGES.some((l) => l.id === id) || MIXES.some((x) => x.id === id);
+const languagesOf = (id) => MIXES.find((x) => x.id === id)?.languages || [id];
 const PARTS = ['early', 'morning', 'midday', 'afternoon', 'evening', 'night', 'late']; // see partOfDay
 const VOCALS = ['instrumental', 'light', 'any'];
 // The icons a mood may use (symbols in public/icons.svg). Moods saved before icons replaced emoji are mapped by EMOJI.
@@ -143,11 +150,12 @@ const BUILT_IN = [
   // ---------- Energy ----------
   m('morning', 'Morning Energizer', 'sunrise', 'energy', 4, 'any',
     { desc: 'Wake up and get going', vol: 5, tod: ['early', 'morning'], days: 'weekday', accent: ['#fb923c', '#fde047'], freq: null }, {
-      instrumental: ['morning motivation instrumental', 'upbeat instrumental', 'happy morning music', 'energetic acoustic', 'upbeat lofi', 'morning workout instrumental|5'],
-      hindi: ['hindi morning motivation songs', 'bollywood happy songs', 'hindi upbeat songs', 'bollywood energetic songs|5', 'hindi feel good songs', 'motivational hindi songs'],
-      english: ['morning motivation', 'wake up songs', 'feel good morning', 'happy pop', 'upbeat pop', 'good vibes'],
-      punjabi: ['punjabi morning songs', 'punjabi upbeat songs', 'punjabi hits', 'punjabi bhangra|5', 'punjabi feel good', 'diljit dosanjh hits'],
-      sufiGhazal: ['uplifting sufi', 'sufi rock', 'coke studio upbeat', 'qawwali upbeat', 'kailash kher', 'sufi energetic'],
+      // Artists, not descriptions: Apple Music on Alexa found none of "bollywood happy songs", "motivational hindi songs"…
+      instrumental: ['Lindsey Stirling', 'Vanessa-Mae', 'Daft Punk|5', 'Two Steps From Hell|5', 'Sivamani'],
+      hindi: ['Vishal-Shekhar', 'Badshah|5', 'Shankar-Ehsaan-Loy', 'Sukhwinder Singh|5', 'Benny Dayal', 'Mika Singh|5', 'Pritam', 'Tanishk Bagchi'],
+      english: ['Pharrell Williams', 'Bruno Mars', 'Dua Lipa', 'Imagine Dragons|5', 'OneRepublic', 'Maroon 5', 'Katy Perry', 'Justin Timberlake'],
+      punjabi: ['Diljit Dosanjh', 'Guru Randhawa', 'Daler Mehndi|5', 'Jazzy B|5', 'Harrdy Sandhu', 'Jassie Gill', 'Karan Aujla', 'Gippy Grewal'],
+      sufiGhazal: ['Kailash Kher', 'Rahat Fateh Ali Khan', 'Nusrat Fateh Ali Khan', 'Sukhwinder Singh', 'Kailasa'],
     }),
   m('workout', 'Workout / Run', 'activity', 'energy', 5, 'any',
     { desc: 'High energy, big beats', vol: 6, tod: ['early', 'morning', 'evening'], accent: ['#f43f5e', '#f97316'], freq: null }, {
@@ -311,7 +319,7 @@ function migrate(raw, log = () => {}) {
   const p = raw.prefs || {};
   if (typeof p.ambience === 'boolean') s.prefs.ambience = p.ambience;
   if (Number(p.freqRatio) >= 0 && Number(p.freqRatio) <= 10) s.prefs.freqRatio = Math.round(Number(p.freqRatio));
-  if (LANGUAGES.some((l) => l.id === p.language)) s.prefs.language = p.language;
+  if (languageOk(p.language)) s.prefs.language = p.language;
   s.history = (Array.isArray(raw.history) ? raw.history : []).filter((h) => h && known(h.m) && Number(h.at)).slice(-LIMITS.history);
   for (const [id, sc] of Object.entries(raw.scores && typeof raw.scores === 'object' ? raw.scores : {})) {
     if (!known(id) || !sc || typeof sc !== 'object') continue;
@@ -363,4 +371,4 @@ function suggestMood(now, state, moods = resolveMoods(state)) {
   return { part, suggestions: scored.sort((a, b) => b.score - a.score).slice(0, 3).map(({ moodId, reason }) => ({ moodId, reason })) };
 }
 
-module.exports = { GROUPS, LANGUAGES, VOCALS, ICONS, BUILT_IN, LIMITS, validateMood, migrate, resolveMoods, builtInMood, suggestMood, partOfDay, DEFAULT_STATE, cleanPhrase };
+module.exports = { GROUPS, LANGUAGES, MIXES, languageOk, languagesOf, VOCALS, ICONS, BUILT_IN, LIMITS, validateMood, migrate, resolveMoods, builtInMood, suggestMood, partOfDay, DEFAULT_STATE, cleanPhrase };
