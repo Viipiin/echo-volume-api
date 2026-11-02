@@ -40,6 +40,7 @@ scripts/make-icon.js Generates the icons
 | `npm run app` | Run the desktop app in development |
 | `npm run build:all` | Build the Windows installer: `dist-installer/Echo-Volume-Setup-<version>.exe` (see [installer/README.md](installer/README.md)) |
 | `npm run dist` | Older NSIS installer into `dist/` (fallback only) |
+| `npm run unlock` | Free the build folders when a build fails with `EBUSY: resource busy or locked` (quits Echo Volume, closes what holds the files). Runs by itself before `build:app` and `dist` |
 | `npm run icons` | Regenerate the logo icons (`build/icon.png`, `build/tray.png`, `public/app-icon.png`) |
 
 ## Setup (Windows / Mac / Linux)
