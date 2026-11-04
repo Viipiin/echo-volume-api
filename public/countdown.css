@@ -1,0 +1,59 @@
+/* Countdown cards (countdown.js): bottom right, fixed to the window so scrolling never moves them.
+   Toasts move up above them while they show (html.cd-on, --cd-h set by countdown.js). */
+.cd-stack { position: fixed; right: var(--sp-4); bottom: var(--sp-4); z-index: calc(var(--z-toast) + 1); display: flex; flex-direction: column; gap: var(--sp-2);
+  width: min(340px, calc(100vw - 32px)); pointer-events: none; }
+html.cd-on .toasts { bottom: calc(var(--sp-4) + var(--cd-h, 0px) + var(--sp-2)); }
+@media (max-width: 760px) {
+  .cd-stack { bottom: calc(var(--tabbar-h) + 12px + env(safe-area-inset-bottom)); }
+  html.cd-on .toasts { bottom: calc(var(--tabbar-h) + 12px + env(safe-area-inset-bottom) + var(--cd-h, 0px) + var(--sp-2)); }
+}
+.cd-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+.cd-card { --ring: var(--accent); pointer-events: auto; position: relative; display: flex; align-items: center; gap: 14px; padding: 12px 40px 12px 12px;
+  border-radius: var(--r-lg); color: var(--text); background: color-mix(in srgb, var(--surface-solid) 82%, transparent); border: 1px solid var(--line);
+  box-shadow: var(--shadow-2), 0 0 0 1px color-mix(in srgb, var(--ring) 18%, transparent), 0 10px 32px -12px color-mix(in srgb, var(--ring) 55%, transparent);
+  backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  animation: cd-in var(--d-slow) var(--ease) both; transition: box-shadow var(--d-base), opacity 200ms, transform 200ms var(--ease); }
+.cd-card.warn { --ring: var(--warn); }
+.cd-card.hot, .cd-card[data-phase="ringing"] { --ring: var(--danger); }
+.cd-card.out { opacity: 0; transform: translateY(10px) scale(0.98); }
+@keyframes cd-in { from { opacity: 0; transform: translateY(14px) scale(0.97); } }
+
+.cd-ring { position: relative; flex: none; width: 56px; height: 56px; display: grid; place-items: center; }
+.cd-ring > svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); overflow: visible; }
+.cd-ring > svg circle { fill: none; stroke-width: 4; }
+.cd-trk { stroke: var(--line-2); }
+.cd-arc { stroke: var(--ring); stroke-linecap: round; filter: drop-shadow(0 0 4px color-mix(in srgb, var(--ring) 60%, transparent));
+  transition: stroke-dashoffset 250ms linear, stroke var(--d-base); }
+.cd-num { font: 650 20px/1 var(--font-display); font-variant-numeric: tabular-nums; color: var(--text); }
+.cd-card.hot .cd-num { color: var(--ring); }
+.cd-bell { display: none; color: var(--ring); }
+.cd-bell svg.i { width: 22px; height: 22px; stroke-width: 2; }
+.cd-card[data-phase="ringing"] .cd-num { display: none; }
+.cd-card[data-phase="ringing"] .cd-bell { display: grid; animation: cd-shake 1.2s ease-in-out infinite; }
+
+.cd-body { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.cd-title { font-weight: 650; font-size: var(--fs-md); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cd-sub { font-size: var(--fs-sm); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cd-sub.err { color: var(--danger); white-space: normal; }
+.cd-act { display: flex; gap: var(--sp-2); margin-top: 6px; }
+.cd-act:empty { display: none; }
+.cd-act .btn svg { width: 14px; height: 14px; margin-right: 4px; }
+.cd-x { position: absolute; top: 8px; right: 8px; width: 26px; height: 26px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%;
+  background: transparent; color: var(--muted); cursor: pointer; }
+.cd-x:hover { background: var(--surface-2); color: var(--text); }
+.cd-x svg { width: 14px; height: 14px; }
+
+/* Last 5 seconds and ringing: the ring breathes */
+.cd-card.hot .cd-ring, .cd-card[data-phase="ringing"] .cd-ring { animation: cd-pulse 1s ease-in-out infinite; }
+@keyframes cd-pulse { 50% { transform: scale(1.07); } }
+@keyframes cd-shake { 0%, 50%, 100% { transform: rotate(0); } 10%, 30% { transform: rotate(-14deg); } 20%, 40% { transform: rotate(14deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .cd-card, .cd-arc, .cd-num { animation: none; transition: none; }
+  .cd-card.hot .cd-ring, .cd-card[data-phase="ringing"] .cd-ring, .cd-card[data-phase="ringing"] .cd-bell { animation: none; }
+}
+
+/* The desktop app's corner window (countdown.html): nothing but the cards, on a transparent window */
+html.cd-window, html.cd-window body { background: transparent !important; margin: 0; overflow: hidden; }
+html.cd-window .cd-stack { right: 12px; bottom: 12px; width: calc(100vw - 24px); }
+html.cd-window .cd-card { background: var(--surface-solid); }

@@ -89,9 +89,17 @@ module.exports = function features(ctx) {
   router.get('/notify', (_req, res) => res.json(store.notify));
   router.post('/notify', (req, res) => {
     for (const k of ['alerts', 'songs', 'moods']) if (typeof req.body?.[k] === 'boolean') store.notify[k] = req.body[k];
+    // Seconds before a timer, alarm or reminder ends that its countdown card shows (0 = off)
+    if (req.body?.countdown != null) {
+      const s = Math.round(Number(req.body.countdown));
+      if (!COUNTDOWN_SECONDS.includes(s)) throw httpErr(400, `"countdown" is one of ${COUNTDOWN_SECONDS.join(', ')} seconds`);
+      store.notify.countdown = s;
+      scheduleAlerts();
+    }
     saveStore();
     res.json(store.notify);
   });
+  const COUNTDOWN_SECONDS = [0, 10, 20, 30, 60];
   function notify(kind, data) { // kind: 'alert' | 'song'
     if (!store.notify[kind === 'alert' ? 'alerts' : 'songs']) return;
     events.emit(kind, data); // desktop app: Windows notification
@@ -161,6 +169,7 @@ module.exports = function features(ctx) {
       // The Alexa phone app is listed by Amazon as "This Device"
       deviceName: !dev || dev.deviceFamily === 'VOX' ? 'Alexa app' : dev.accountName,
       label: n.reminderLabel || n.timerLabel || n.alarmLabel || '',
+      repeating: !!(n.recurringPattern || n.rRuleData?.byWeekDays?.length), // the countdown card offers Cancel only when it isn't
     };
     if (type === 'timer') {
       a.duration = n.originalDurationInMillis || null;
@@ -188,11 +197,20 @@ module.exports = function features(ctx) {
     clearTimeout(alertsTimer);
     alertsTimer = setTimeout(() => refreshAlerts().catch((e) => console.log('Alarms & timers refresh failed:', e.message)), ms);
   }
-  // A notification on the PC when a timer or alarm goes off (the Echo rings as usual)
+  // A notification on the PC when a timer or alarm goes off (the Echo rings as usual). And, `countdown` seconds
+  // before anything ends, a "countdown" event: the desktop app wakes its corner card (desktop/main.js), which reads
+  // the list and counts down by itself; pages count down from the list they already have (public/countdown.js).
   function scheduleAlerts() {
     alertTimeouts.forEach(clearTimeout);
     alertTimeouts = [];
-    const now = Date.now();
+    const now = Date.now(), lead = (store.notify.countdown ?? 20) * 1000;
+    if (lead) {
+      for (const a of alertList()) {
+        if (a.status !== 'ON' || !a.at || a.at <= now || a.at - now > 24 * 3600 * 1000) continue;
+        const wake = () => events.emit('countdown', { id: a.id, at: a.at });
+        if (a.at - lead <= now) wake(); else alertTimeouts.push(setTimeout(wake, a.at - lead - now));
+      }
+    }
     for (const a of alertList()) {
       if (a.type === 'reminder' || a.status !== 'ON' || !a.at || a.at <= now || a.at - now > 24 * 3600 * 1000) continue;
       alertTimeouts.push(setTimeout(() => notify('alert', {
@@ -257,6 +275,14 @@ module.exports = function features(ctx) {
     broadcast('alerts');
     refreshAlertsSoon(3000);
     res.json({ deleted: true });
+  }));
+  // Stop an alarm, timer or reminder ringing on one Echo (the countdown card's Stop): like saying "Alexa, stop" to it
+  router.post('/alerts/stop', wrap(async (req, res) => {
+    const d = alexa.serialNumbers[req.body?.device];
+    if (!d || d.deviceFamily === 'VOX') throw httpErr(400, 'Stop it in the Alexa app: that one rings on your phone');
+    await sequence(d.serialNumber, asSequence(alexa.createSequenceNode('deviceStop', null, d.serialNumber)));
+    refreshAlertsSoon(2500);
+    res.json({ stopped: true, device: d.accountName });
   }));
   router.post('/alerts/toggle', wrap(async (req, res) => {
     const n = rawAlert(req.body?.id);

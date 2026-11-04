@@ -6,6 +6,15 @@
 // where (optional): the screen it's on, so people can find it
 const RELEASES = [
   {
+    version: '5.3.0', date: '2026-11-04',
+    headline: 'A countdown card for the last seconds of a timer, alarm or reminder',
+    items: [
+      { type: 'new', where: 'Every screen', text: 'In the last 20 seconds before a timer, alarm or reminder ends, a card in the bottom-right corner counts down with a ring that drains, turning orange and then red. It stays put while you scroll. Cancel it from the card before it ends (a timer, or an alarm or reminder that doesn\'t repeat). Once it rings, Stop silences that Echo.' },
+      { type: 'new', where: 'Desktop app', text: 'While the app is in the tray, minimized or behind other windows, the countdown card shows in the corner of your screen, over other windows, without taking the focus.' },
+      { type: 'new', where: 'Settings', text: 'Choose how early the countdown card shows (10, 20 or 30 seconds, or 1 minute), or turn it off: Settings → Notifications.' },
+    ],
+  },
+  {
     version: '5.2.1', date: '2026-11-01',
     headline: 'Moods move on when Apple Music can\'t find a phrase',
     items: [

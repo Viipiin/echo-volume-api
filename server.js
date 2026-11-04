@@ -470,7 +470,7 @@ const store = {
 const hadStore = fs.existsSync(STORE_FILE); // false on a new install
 try { Object.assign(store, JSON.parse(fs.readFileSync(STORE_FILE, 'utf8'))); } catch {}
 // Settings added in later versions: filled in for files written before them (what's in the file always wins)
-store.notify = { alerts: true, songs: false, moods: true, ...store.notify };
+store.notify = { alerts: true, songs: false, moods: true, countdown: 20, ...store.notify };
 store.celebrate = { enabled: true, time: '09:00', device: 'all', sound: '', ...store.celebrate };
 store.phone = { enabled: false, key: '', ...store.phone };
 store.moods = require('./moods').migrate(store.moods, console.log);
