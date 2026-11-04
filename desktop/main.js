@@ -42,7 +42,7 @@ const saveSettings = () => fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settin
 
 // ---------- server ----------
 let server, base;
-let mainWin, loginWin, miniWin, osdWin, tray;
+let mainWin, loginWin, miniWin, osdWin, cdWin, tray;
 let quitting = false;
 
 function startServer() {
@@ -69,6 +69,11 @@ function startServer() {
   };
   server.events.on('alert', (n) => notify(n, false));
   server.events.on('song', (n) => notify(n, true));
+  // A timer, alarm or reminder is about to end: the corner card (public/countdown.html) counts down by itself
+  server.events.on('countdown', () => {
+    const w = countdownWin();
+    if (!w.webContents.isLoading()) w.webContents.executeJavaScript('window.wake && window.wake()').catch(() => {});
+  });
   // Moods: a quiet note when one starts (Settings: "When a mood starts"), always one when it stops on an error.
   // The tray's Moods menu follows what plays.
   server.events.on('mood', (m) => {
@@ -128,6 +133,8 @@ function createMainWindow() {
     }
   });
   wireLinks(mainWin);
+  // The countdown card shows over other windows only while this one isn't in front (in front, the page shows its own)
+  for (const ev of ['focus', 'blur', 'minimize', 'restore', 'hide', 'show']) mainWin.on(ev, () => placeCountdown());
 }
 
 function showMain() {
@@ -318,6 +325,38 @@ function osd(title, value, max) {
   if (osdWin.webContents.isLoading()) osdWin.webContents.once('did-finish-load', run); else run();
   clearTimeout(osd.t);
   osd.t = setTimeout(() => osdWin?.hide(), 1400);
+}
+
+// ---------- countdown card: the last seconds of a timer, alarm or reminder, bottom right of the screen ----------
+// A window that stays on top without taking focus (clicks still work). The page reports how many cards it shows and
+// how tall they are in its title ("cd:<count>:<px>"); it is shown while there are some and the app isn't in front.
+let cdCount = 0, cdHeight = 0;
+const CD_W = 364;
+const mainInFront = () => !!mainWin && !mainWin.isDestroyed() && mainWin.isVisible() && !mainWin.isMinimized() && mainWin.isFocused();
+function countdownWin() {
+  if (cdWin && !cdWin.isDestroyed()) return cdWin;
+  cdWin = new BrowserWindow({
+    width: CD_W, height: 120, show: false, frame: false, transparent: true, hasShadow: false, resizable: false, movable: false,
+    skipTaskbar: true, focusable: false, alwaysOnTop: true,
+    webPreferences: { contextIsolation: true, sandbox: true, backgroundThrottling: false }, // counts down while hidden
+  });
+  cdWin.setAlwaysOnTop(true, 'screen-saver');
+  cdWin.on('page-title-updated', (e, title) => {
+    e.preventDefault();
+    const m = /^cd:(\d+):(\d+)$/.exec(title);
+    if (m) { cdCount = Number(m[1]); cdHeight = Number(m[2]); placeCountdown(); }
+  });
+  cdWin.on('closed', () => { cdWin = null; cdCount = 0; });
+  wireLinks(cdWin);
+  cdWin.loadURL(base + '/countdown.html' + keyQuery());
+  return cdWin;
+}
+function placeCountdown() {
+  if (!cdWin || cdWin.isDestroyed()) return;
+  if (!cdCount || mainInFront()) { if (cdWin.isVisible()) cdWin.hide(); return; }
+  const wa = screen.getPrimaryDisplay().workArea, h = Math.min(cdHeight + 24, wa.height);
+  cdWin.setBounds({ x: wa.x + wa.width - CD_W - 8, y: wa.y + wa.height - h - 8, width: CD_W, height: h });
+  if (!cdWin.isVisible()) cdWin.showInactive();
 }
 
 // ---------- hotkeys ----------

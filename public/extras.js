@@ -62,6 +62,10 @@
     finally { $('stopAll').disabled = false; }
   };
 
+  // ---------- Countdown card: the last seconds of a timer, alarm or reminder, bottom right (countdown.js) ----------
+  const countdown = window.Countdown?.create({ api });
+  api('/notify').then((n) => countdown?.setLead(n.countdown ?? 20)).catch(() => {});
+
   // ---------- Echo card badges: Do Not Disturb, running timer ----------
   let dnd = {}, alerts = [];
   function decorateCards() {
@@ -197,6 +201,7 @@
       const r = await api('/alerts');
       const skew = Date.now() - r.now; // the server's clock vs this device's
       alerts = r.alerts.map((a) => ({ ...a, at: a.at && a.at + skew }));
+      countdown?.update(alerts);
       decorateCards();
       if ($('alTimers')) renderAlerts();
     } catch (e) { if ($('alTimers')) alStatus(e.message, true); }
@@ -642,13 +647,18 @@
         <label class="toggle setrow"><span>When a timer or alarm goes off</span><span class="switch"><input type="checkbox" data-notify="alerts" /><span></span></span></label>
         <label class="toggle setrow"><span>When the song changes (Echo music is playing on)</span><span class="switch"><input type="checkbox" data-notify="songs" /><span></span></span></label>
         <label class="toggle setrow"><span>When a mood starts (a mood that stops on a problem always says so)</span><span class="switch"><input type="checkbox" data-notify="moods" /><span></span></span></label>
+        <label class="setrow"><span>Countdown card before a timer, alarm or reminder ends (bottom right${isApp ? ', also over other windows while the app is hidden' : ''})</span>
+          <select data-notify-num="countdown" aria-label="Countdown card"><option value="0">Off</option><option value="10">10 seconds</option><option value="20">20 seconds</option><option value="30">30 seconds</option><option value="60">1 minute</option></select></label>
         <p class="kind">${isApp ? 'Shown as Windows notifications.' : 'Shown in this page, and as browser notifications while it is in the background.'}</p>
         ${!isApp && 'Notification' in window && Notification.permission !== 'granted' ? '<button id="nfAllow">Allow browser notifications</button>' : ''}</div>
       <div class="card xcard" id="phoneCard"><div class="top"><span class="name">Phone access</span></div><div id="phoneBody"><span class="kind">Loading…</span></div></div>`;
     loadEq(echos);
     markDnd();
     loadBluetooth();
-    api('/notify').then((n) => document.querySelectorAll('[data-notify]').forEach((c) => { c.checked = !!n[c.dataset.notify]; })).catch(() => {});
+    api('/notify').then((n) => {
+      document.querySelectorAll('[data-notify]').forEach((c) => { c.checked = !!n[c.dataset.notify]; });
+      document.querySelectorAll('[data-notify-num]').forEach((c) => { c.value = String(n[c.dataset.notifyNum] ?? 20); });
+    }).catch(() => {});
     loadPhone();
     loadCelebrations();
     if ($('nfAllow')) $('nfAllow').onclick = () => Notification.requestPermission().then((p) => { if (p === 'granted') $('nfAllow').remove(); });
@@ -701,6 +711,10 @@
         dnd[c.dataset.serial] = t.checked; decorateCards();
       }
       if (t.dataset.notify) await api('/notify', { [t.dataset.notify]: t.checked });
+      if (t.dataset.notifyNum) {
+        const n = await api('/notify', { [t.dataset.notifyNum]: Number(t.value) });
+        if (t.dataset.notifyNum === 'countdown') countdown?.setLead(n.countdown);
+      }
       if (t.id === 'phoneOn') renderPhone(await api('/lan', { enabled: t.checked }));
     } catch (err) { seStatus(err.message, true); if (t.type === 'checkbox') t.checked = !t.checked; }
   });
